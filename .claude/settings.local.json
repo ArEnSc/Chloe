@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir:*)",
+      "Bash(mv:*)",
+      "Bash(npm run lint)",
+      "Bash(npm run workflow:logs:*)",
+      "Bash(git add:*)",
+      "Bash(rm:*)",
+      "Bash(node:*)",
+      "Bash(npm run typecheck:*)",
+      "Bash(npm install:*)",
+      "WebFetch(domain:lmstudio.ai)",
+      "Bash(npm run lint:*)",
+      "Bash(grep:*)",
+      "Bash(npx tsx:*)",
+      "Bash(node:*)",
+      "Bash(npm run lint:*)",
+      "Bash(grep:*)",
+      "Bash(od:*)",
+      "Bash(npm run dev:*)",
+      "WebFetch(domain:github.com)",
+      "Bash(git push:*)",
+      "Bash(npm run build:*)",
+      "Bash(git commit:*)",
+      "Bash(find:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
