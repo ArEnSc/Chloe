@@ -63,12 +63,20 @@ class StandaloneMockMailService implements IUnifiedEmailService {
     this.log('updateEmailStatus', { emailId, updates })
   }
 
-  async addLabels(operation: { emailId: string; labelIds: string[]; operation: 'add' | 'remove' | 'set' }): Promise<LabelOperationResult> {
+  async addLabels(operation: {
+    emailId: string
+    labelIds: string[]
+    operation: 'add' | 'remove' | 'set'
+  }): Promise<LabelOperationResult> {
     this.log('addLabels', operation)
     return { success: true }
   }
 
-  async removeLabels(operation: { emailId: string; labelIds: string[]; operation: 'add' | 'remove' | 'set' }): Promise<LabelOperationResult> {
+  async removeLabels(operation: {
+    emailId: string
+    labelIds: string[]
+    operation: 'add' | 'remove' | 'set'
+  }): Promise<LabelOperationResult> {
     this.log('removeLabels', operation)
     return { success: true }
   }

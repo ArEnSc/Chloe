@@ -12,6 +12,7 @@ import {
 } from '../../shared/types/email'
 import { logInfo, logError } from '../../shared/logger'
 import { getCleanEmail } from '../utils/emailSanitizer'
+import { AccountService } from './AccountService'
 
 // Result types for UnifiedEmailService operations
 export interface SendEmailResult {
@@ -122,11 +123,13 @@ export interface IUnifiedEmailService {
 export class UnifiedEmailService implements IUnifiedEmailService {
   private static instance: UnifiedEmailService | null = null
   private gmailAuthService: GmailAuthService
+  private accountService: AccountService
   private pollingInterval: NodeJS.Timeout | null = null
   private lastSyncTime: Date | null = null
 
   private constructor(gmailAuthService: GmailAuthService) {
     this.gmailAuthService = gmailAuthService
+    this.accountService = AccountService.getInstance()
     this.setupIpcHandlers()
   }
 
@@ -194,16 +197,83 @@ export class UnifiedEmailService implements IUnifiedEmailService {
       logInfo('[UnifiedEmailService] Fetching emails', { filter, syncToDb })
 
       const gmail = await this.gmailAuthService.getGmailClient()
-      const query = this.buildGmailQuery(filter)
-      const maxResults = filter?.limit || 100
+      const userEmail = await this.gmailAuthService.getUserEmail()
 
-      const listResponse = await gmail.users.messages.list({
-        userId: 'me',
-        q: query,
-        maxResults
-      })
+      // Get last sync info for incremental sync
+      const lastHistoryId = await this.accountService.getLastHistoryId(userEmail)
 
-      const messages = listResponse.data.messages || []
+      let messages: gmail_v1.Schema$Message[] = []
+      let currentHistoryId: string | undefined
+
+      if (lastHistoryId && !filter?.query && !filter?.from && !filter?.subject) {
+        // Use history API for incremental sync
+        logInfo('[UnifiedEmailService] Using incremental sync with historyId', { lastHistoryId })
+
+        try {
+          const historyResponse = await gmail.users.history.list({
+            userId: 'me',
+            startHistoryId: lastHistoryId,
+            historyTypes: ['messageAdded']
+          })
+
+          currentHistoryId = historyResponse.data.historyId || undefined
+
+          if (historyResponse.data.history) {
+            // Extract message IDs from history
+            const messageIds = new Set<string>()
+            for (const history of historyResponse.data.history) {
+              if (history.messagesAdded) {
+                for (const added of history.messagesAdded) {
+                  if (added.message?.id) {
+                    messageIds.add(added.message.id)
+                  }
+                }
+              }
+            }
+
+            // Convert to message array
+            messages = Array.from(messageIds).map((id) => ({ id }))
+            logInfo(`[UnifiedEmailService] Found ${messages.length} new messages from history`)
+          }
+        } catch (historyError) {
+          logError(
+            '[UnifiedEmailService] History API failed, falling back to full sync',
+            historyError
+          )
+          // Fall back to regular sync
+        }
+      }
+
+      // If no history sync or it failed, use regular list
+      if (
+        messages.length === 0 &&
+        (!lastHistoryId || filter?.query || filter?.from || filter?.subject)
+      ) {
+        const query = this.buildGmailQuery(filter)
+        const maxResults = filter?.limit || 100
+
+        // Add date filter for incremental sync if no other filters
+        let finalQuery = query
+        if (!query && this.lastSyncTime) {
+          // Get emails from last sync time minus 5 minutes buffer
+          const bufferTime = new Date(this.lastSyncTime.getTime() - 5 * 60 * 1000)
+          finalQuery = `after:${Math.floor(bufferTime.getTime() / 1000)}`
+          logInfo('[UnifiedEmailService] Using date-based incremental sync', { after: bufferTime })
+        }
+
+        const listResponse = await gmail.users.messages.list({
+          userId: 'me',
+          q: finalQuery,
+          maxResults
+        })
+
+        messages = listResponse.data.messages || []
+        // Get the current history ID for next sync
+        currentHistoryId = listResponse.data.resultSizeEstimate
+          ? (await gmail.users.getProfile({ userId: 'me' })).data.historyId || undefined
+          : undefined
+      }
+
       const emails: Email[] = []
 
       // Fetch full details for each message
@@ -228,6 +298,11 @@ export class UnifiedEmailService implements IUnifiedEmailService {
       // Sync to database if requested
       if (syncToDb && emails.length > 0) {
         await this.saveToDatabase(emails)
+      }
+
+      // Update last sync info
+      if (syncToDb && currentHistoryId) {
+        await this.accountService.updateLastSync(userEmail, currentHistoryId)
       }
 
       logInfo(`[UnifiedEmailService] Fetched ${emails.length} emails`)
@@ -700,6 +775,13 @@ export class UnifiedEmailService implements IUnifiedEmailService {
             database.delete(emails)
           })
         }
+        
+        // Reset last sync info to force full sync next time
+        const userEmail = await this.gmailAuthService.getUserEmail()
+        await this.accountService.clearLastHistoryId(userEmail)
+        this.lastSyncTime = null
+        
+        logInfo('[UnifiedEmailService] Cleared all emails and reset sync history')
         return { success: true }
       } catch (error) {
         logError('[UnifiedEmailService] Clear all emails error:', error)

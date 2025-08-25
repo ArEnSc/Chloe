@@ -11,6 +11,14 @@ import type {
 } from '../../shared/types/account'
 
 export class AccountService {
+  private static instance: AccountService | null = null
+
+  static getInstance(): AccountService {
+    if (!AccountService.instance) {
+      AccountService.instance = new AccountService()
+    }
+    return AccountService.instance
+  }
   /**
    * Save or update account information in Realm with encrypted tokens
    */
@@ -210,7 +218,10 @@ export class AccountService {
 
         if (account) {
           account.lastSync = new Date()
-          if (historyId) {
+          // Explicitly handle clearing the history ID
+          if (historyId === undefined) {
+            account.lastHistoryId = undefined
+          } else {
             account.lastHistoryId = historyId
           }
           account.updatedAt = new Date()
@@ -235,6 +246,28 @@ export class AccountService {
     } catch (error) {
       logError('Error getting last history ID:', error)
       return undefined
+    }
+  }
+
+  /**
+   * Clear last history ID to force full sync
+   */
+  async clearLastHistoryId(email: string): Promise<void> {
+    try {
+      const db = await getDatabase()
+      if (!db) return
+
+      await db.write(() => {
+        const account = db.objects<AccountDocument>('Account').filtered('email = $0', email)[0]
+
+        if (account) {
+          account.lastHistoryId = undefined
+          account.updatedAt = new Date()
+          logInfo(`Cleared history ID for ${email}`)
+        }
+      })
+    } catch (error) {
+      logError('Error clearing last history ID:', error)
     }
   }
 

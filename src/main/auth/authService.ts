@@ -31,7 +31,7 @@ export class GmailAuthService {
       this.config.redirectUri
     )
 
-    this.accountService = new AccountService()
+    this.accountService = AccountService.getInstance()
   }
 
   async isAuthenticated(): Promise<boolean> {
@@ -165,6 +165,17 @@ export class GmailAuthService {
     })
 
     return google.gmail({ version: 'v1', auth: this.oauth2Client })
+  }
+
+  async getUserEmail(): Promise<string> {
+    if (!this.currentUserEmail) {
+      const accounts = await this.accountService.getActiveAccounts()
+      if (accounts.length === 0) {
+        throw new Error('No authenticated user')
+      }
+      this.currentUserEmail = accounts[0].email
+    }
+    return this.currentUserEmail
   }
 
   async refreshAccessToken(): Promise<void> {
