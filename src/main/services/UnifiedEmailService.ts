@@ -13,11 +13,113 @@ import {
 import { logInfo, logError } from '../../shared/logger'
 import { getCleanEmail } from '../utils/emailSanitizer'
 
+// Result types for UnifiedEmailService operations
+export interface SendEmailResult {
+  success: boolean
+  messageId?: string
+  error?: string
+}
+
+export interface ScheduleEmailResult {
+  success: boolean
+  scheduledId?: string
+  error?: string
+}
+
+export interface GetEmailsResult {
+  success: boolean
+  count?: number
+  emails?: Array<{
+    id: string
+    from: string
+    to: string
+    subject: string
+    snippet: string
+    date: string
+    isRead: boolean
+    isStarred: boolean
+    hasAttachments: boolean
+  }>
+  error?: string
+}
+
+export interface AnalysisResult {
+  success: boolean
+  result?: string
+  error?: string
+}
+
+export interface LabelOperationResult {
+  success: boolean
+  error?: string
+}
+
+export interface ListenInboxResult {
+  success: boolean
+  listenerId?: string
+  error?: string
+}
+
+// Input types
+export interface ScheduledEmail extends EmailComposition {
+  scheduledTime: Date
+  id?: string
+}
+
+export interface LabelOperation {
+  emailId: string
+  labelIds: string[]
+  operation: 'add' | 'remove' | 'set'
+}
+
+/**
+ * Interface for UnifiedEmailService - used by workflow engine
+ */
+export interface IUnifiedEmailService {
+  // Send operations
+  sendEmail(composition: EmailComposition): Promise<SendEmailResult>
+  scheduleEmail(scheduledEmail: ScheduledEmail): Promise<ScheduleEmailResult>
+
+  // Retrieval operations
+  fetchEmails(filter?: EmailFilter, syncToDb?: boolean): Promise<Email[]>
+  getLocalEmails(filter?: EmailFilter): Promise<Email[]>
+  getEmails(filter?: EmailFilter & { syncFromGmail?: boolean }): Promise<GetEmailsResult>
+
+  // Update operations
+  updateEmailStatus(emailId: string, updates: Partial<Email>): Promise<void>
+
+  // Label operations
+  addLabels(operation: LabelOperation): Promise<LabelOperationResult>
+  removeLabels(operation: LabelOperation): Promise<LabelOperationResult>
+
+  // Email monitoring operations
+  listenForEmails(
+    senders: string[],
+    options?: {
+      subject?: string
+      labels?: string[]
+      callback?: (email: Email) => void
+    }
+  ): Promise<ListenInboxResult>
+
+  // Analysis operations
+  analysis(
+    prompt: string,
+    context?: {
+      emails?: Email[]
+      data?: Record<string, unknown>
+    }
+  ): Promise<AnalysisResult>
+
+  // Polling operations
+  startPolling(intervalMinutes?: number, filter?: EmailFilter): void
+  stopPolling(): void
+}
+
 /**
  * Unified email service that handles all email operations
- * Combines functionality from EmailService, GmailService, EmailRepository, and MailActionService
  */
-export class UnifiedEmailService {
+export class UnifiedEmailService implements IUnifiedEmailService {
   private static instance: UnifiedEmailService | null = null
   private gmailAuthService: GmailAuthService
   private pollingInterval: NodeJS.Timeout | null = null
@@ -647,5 +749,150 @@ export class UnifiedEmailService {
     BrowserWindow.getAllWindows().forEach((window) => {
       window.webContents.send(EMAIL_IPC_CHANNELS.EMAIL_NEW_EMAILS, transformedEmails)
     })
+  }
+
+  // ============================================
+  // Additional methods for workflow integration
+  // ============================================
+
+  /**
+   * Get emails with result format (for workflow compatibility)
+   */
+  async getEmails(filter?: EmailFilter & { syncFromGmail?: boolean }): Promise<GetEmailsResult> {
+    try {
+      const { syncFromGmail, ...emailFilter } = filter || {}
+      let emails: Email[]
+
+      if (syncFromGmail) {
+        emails = await this.fetchEmails(emailFilter, true)
+      } else {
+        emails = await this.getLocalEmails(emailFilter)
+      }
+
+      return {
+        success: true,
+        count: emails.length,
+        emails: emails.map((email) => ({
+          id: email.id,
+          from: `${email.from.name} <${email.from.email}>`,
+          to: email.to.map((t) => t.email).join(', '),
+          subject: email.subject,
+          snippet: email.snippet,
+          date: email.date.toISOString(),
+          isRead: email.isRead,
+          isStarred: email.isStarred,
+          hasAttachments: email.attachments.length > 0
+        }))
+      }
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to get emails'
+      }
+    }
+  }
+
+  /**
+   * Schedule an email to be sent later
+   */
+  async scheduleEmail(scheduledEmail: ScheduledEmail): Promise<ScheduleEmailResult> {
+    // TODO: Implement email scheduling
+    // For now, return a placeholder response
+    return {
+      success: false,
+      error: 'Email scheduling not yet implemented'
+    }
+  }
+
+  /**
+   * Add labels to an email
+   */
+  async addLabels(operation: LabelOperation): Promise<LabelOperationResult> {
+    try {
+      const gmail = await this.gmailAuthService.getGmailClient()
+
+      await gmail.users.messages.modify({
+        userId: 'me',
+        id: operation.emailId,
+        requestBody: {
+          addLabelIds: operation.labelIds
+        }
+      })
+
+      return { success: true }
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to add labels'
+      }
+    }
+  }
+
+  /**
+   * Remove labels from an email
+   */
+  async removeLabels(operation: LabelOperation): Promise<LabelOperationResult> {
+    try {
+      const gmail = await this.gmailAuthService.getGmailClient()
+
+      await gmail.users.messages.modify({
+        userId: 'me',
+        id: operation.emailId,
+        requestBody: {
+          removeLabelIds: operation.labelIds
+        }
+      })
+
+      return { success: true }
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to remove labels'
+      }
+    }
+  }
+
+  /**
+   * Listen for incoming emails matching criteria
+   */
+  async listenForEmails(
+    senders: string[],
+    options?: {
+      subject?: string
+      labels?: string[]
+      callback?: (email: Email) => void
+    }
+  ): Promise<ListenInboxResult> {
+    // TODO: Implement email listening with callbacks
+    // This would set up a listener that triggers the callback when matching emails arrive
+    return {
+      success: false,
+      error: 'Email listening not yet implemented'
+    }
+  }
+
+  /**
+   * Analyze email content using LLM
+   */
+  async analysis(
+    prompt: string,
+    context?: {
+      emails?: Email[]
+      data?: Record<string, unknown>
+    }
+  ): Promise<AnalysisResult> {
+    try {
+      // TODO: Integrate with LLM for analysis
+      // For now, return a placeholder
+      return {
+        success: false,
+        error: 'Email analysis not yet implemented - needs LLM integration'
+      }
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to analyze'
+      }
+    }
   }
 }

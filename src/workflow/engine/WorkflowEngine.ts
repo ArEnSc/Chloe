@@ -9,24 +9,27 @@ import {
   AnalysisInputs
 } from '../types/workflow'
 import {
-  MailActionService,
-  EmailMessage,
-  EmailComposition,
+  IUnifiedEmailService,
+  SendEmailResult,
   ScheduledEmail,
-  MailActionResult
-} from '../../types/mailActions'
+  GetEmailsResult,
+  AnalysisResult,
+  ListenInboxResult,
+  LabelOperationResult
+} from '../../main/services/UnifiedEmailService'
+import { Email, EmailComposition } from '../../shared/types/email'
 import { WorkflowLogger } from './WorkflowLogger'
 
 export interface TriggerData {
   emailId?: string
-  email?: EmailMessage
+  email?: Email
   triggeredAt?: Date
 }
 
 interface WorkflowContext {
   trigger: {
     emailId?: string
-    email?: EmailMessage
+    email?: Email
     type: string
     data?: TriggerData
   }
@@ -38,24 +41,29 @@ interface ProcessedInputs {
   scheduledEmail?: ScheduledEmail
   senders?: string[]
   prompt?: string
-  emails?: EmailMessage[]
+  emails?: Email[]
   data?: Record<string, unknown>
   emailId?: string
   subject?: string
   labels?: string[]
-  callback?: (email: EmailMessage) => void
+  callback?: (email: Email) => void
+  from?: string
+  isRead?: boolean
+  isStarred?: boolean
+  limit?: number
+  syncFromGmail?: boolean
 }
 
 // Type guards
 // Removed unused function - can be re-added if needed later
 
 export class WorkflowEngine {
-  private mailActions: MailActionService
+  private emailService: IUnifiedEmailService
   private runningWorkflows: Map<string, WorkflowExecution> = new Map()
   protected logger: WorkflowLogger
 
-  constructor(mailActions: MailActionService, logger?: WorkflowLogger) {
-    this.mailActions = mailActions
+  constructor(emailService: IUnifiedEmailService, logger?: WorkflowLogger) {
+    this.emailService = emailService
     this.logger = logger || new WorkflowLogger()
   }
 
@@ -362,7 +370,7 @@ export class WorkflowEngine {
       if (resolvedInputs.emailsFromPreviousStep) {
         const [stepId] = resolvedInputs.emailsFromPreviousStep.split('.')
         const stepOutput = context.stepOutputs.get(stepId)
-        processed.emails = stepOutput as EmailMessage[]
+        processed.emails = stepOutput as Email[]
       }
     }
 
@@ -372,24 +380,38 @@ export class WorkflowEngine {
   private async callMailAction(
     functionName: string,
     inputs: ProcessedInputs
-  ): Promise<MailActionResult> {
+  ): Promise<
+    SendEmailResult | GetEmailsResult | AnalysisResult | ListenInboxResult | LabelOperationResult
+  > {
     switch (functionName) {
       case 'sendEmail':
         if (!inputs.composition) throw new Error('Missing composition for sendEmail')
-        return await this.mailActions.sendEmail(inputs.composition)
+        return await this.emailService.sendEmail(inputs.composition)
       case 'scheduleEmail':
         if (!inputs.scheduledEmail) throw new Error('Missing scheduledEmail for scheduleEmail')
-        return await this.mailActions.scheduleEmail(inputs.scheduledEmail)
+        return await this.emailService.scheduleEmail(inputs.scheduledEmail)
+      case 'getEmails': {
+        // Extract filter from inputs
+        const filter = {
+          from: inputs.from,
+          subject: inputs.subject,
+          isRead: inputs.isRead,
+          isStarred: inputs.isStarred,
+          limit: inputs.limit,
+          syncFromGmail: inputs.syncFromGmail
+        }
+        return await this.emailService.getEmails(filter)
+      }
       case 'listenForEmails':
         if (!inputs.senders) throw new Error('Missing senders for listenForEmails')
-        return await this.mailActions.listenForEmails(inputs.senders, {
+        return await this.emailService.listenForEmails(inputs.senders, {
           subject: inputs.subject,
           labels: inputs.labels,
           callback: inputs.callback
         })
       case 'analysis':
         if (!inputs.prompt) throw new Error('Missing prompt for analysis')
-        return await this.mailActions.analysis(inputs.prompt, {
+        return await this.emailService.analysis(inputs.prompt, {
           emails: inputs.emails,
           data: inputs.data
         })
@@ -433,8 +455,8 @@ export class WorkflowEngine {
     email: string
   ): Promise<void> {
     try {
-      await this.mailActions.sendEmail({
-        to: [{ email }],
+      await this.emailService.sendEmail({
+        to: [email],
         subject: `Workflow Error: Step ${step.id} failed`,
         body: `
 Error in workflow step: ${step.id}

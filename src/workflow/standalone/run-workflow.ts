@@ -5,24 +5,23 @@ import { WorkflowLogger } from '../engine/WorkflowLogger'
 import { WorkflowDebugger } from '../debug/WorkflowDebugger'
 import { WorkflowPlan } from '../types/workflow'
 import {
-  MailActionService,
-  EmailComposition,
-  ScheduledEmail,
-  LabelOperation,
-  EmailMessage,
+  IUnifiedEmailService,
   SendEmailResult,
   ScheduleEmailResult,
-  LabelOperationResult,
+  ScheduledEmail,
+  GetEmailsResult,
+  AnalysisResult,
   ListenInboxResult,
-  AnalysisResult
-} from '../../types/mailActions'
+  LabelOperationResult
+} from '../../main/services/UnifiedEmailService'
+import { Email, EmailComposition, EmailFilter } from '../../shared/types/email'
 import * as fs from 'fs/promises'
 import * as path from 'path'
 
 /**
- * Standalone mock implementation of MailActionService for testing
+ * Standalone mock implementation of UnifiedEmailService for testing
  */
-class StandaloneMockMailService implements MailActionService {
+class StandaloneMockMailService implements IUnifiedEmailService {
   private logs: string[] = []
 
   async sendEmail(composition: EmailComposition): Promise<SendEmailResult> {
@@ -41,14 +40,45 @@ class StandaloneMockMailService implements MailActionService {
     }
   }
 
-  async addLabels(operation: LabelOperation): Promise<LabelOperationResult> {
+  async fetchEmails(filter?: EmailFilter, syncToDb?: boolean): Promise<Email[]> {
+    this.log('fetchEmails', { filter, syncToDb })
+    return []
+  }
+
+  async getLocalEmails(filter?: EmailFilter): Promise<Email[]> {
+    this.log('getLocalEmails', filter)
+    return []
+  }
+
+  async getEmails(filter?: EmailFilter & { syncFromGmail?: boolean }): Promise<GetEmailsResult> {
+    this.log('getEmails', filter)
+    return {
+      success: true,
+      count: 0,
+      emails: []
+    }
+  }
+
+  async updateEmailStatus(emailId: string, updates: Partial<Email>): Promise<void> {
+    this.log('updateEmailStatus', { emailId, updates })
+  }
+
+  async addLabels(operation: { emailId: string; labelIds: string[]; operation: 'add' | 'remove' | 'set' }): Promise<LabelOperationResult> {
     this.log('addLabels', operation)
     return { success: true }
   }
 
-  async removeLabels(operation: LabelOperation): Promise<LabelOperationResult> {
+  async removeLabels(operation: { emailId: string; labelIds: string[]; operation: 'add' | 'remove' | 'set' }): Promise<LabelOperationResult> {
     this.log('removeLabels', operation)
     return { success: true }
+  }
+
+  startPolling(intervalMinutes?: number, filter?: EmailFilter): void {
+    this.log('startPolling', { intervalMinutes, filter })
+  }
+
+  stopPolling(): void {
+    this.log('stopPolling', {})
   }
 
   async listenForEmails(
@@ -56,7 +86,7 @@ class StandaloneMockMailService implements MailActionService {
     options?: {
       subject?: string
       labels?: string[]
-      callback?: (email: EmailMessage) => void
+      callback?: (email: Email) => void
     }
   ): Promise<ListenInboxResult> {
     this.log('listenForEmails', { senders, options })
@@ -69,7 +99,7 @@ class StandaloneMockMailService implements MailActionService {
   async analysis(
     prompt: string,
     context?: {
-      emails?: EmailMessage[]
+      emails?: Email[]
       data?: Record<string, unknown>
     }
   ): Promise<AnalysisResult> {
@@ -80,7 +110,7 @@ class StandaloneMockMailService implements MailActionService {
 
     return {
       success: true,
-      data: response
+      result: response
     }
   }
 

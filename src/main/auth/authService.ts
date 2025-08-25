@@ -46,7 +46,7 @@ export class GmailAuthService {
       // For now, use the first account
       const accountInfo = accounts[0]
       const accountWithTokens = await this.accountService.getAccountWithTokens(accountInfo.email)
-      
+
       if (!accountWithTokens) {
         return false
       }
@@ -109,18 +109,18 @@ export class GmailAuthService {
         hasRefreshToken: !!tokens.refresh_token,
         expiryDate: tokens.expiry_date
       })
-      
+
       this.oauth2Client.setCredentials(tokens)
-      
+
       // Get user email from Gmail API
       const gmail = google.gmail({ version: 'v1', auth: this.oauth2Client })
       const profile = await gmail.users.getProfile({ userId: 'me' })
       const userEmail = profile.data.emailAddress
-      
+
       if (!userEmail) {
         throw new Error('Unable to get user email address')
       }
-      
+
       // Save account to Realm database
       if (tokens.access_token && tokens.refresh_token && tokens.expiry_date) {
         const accountInput: CreateAccountInput = {
@@ -130,12 +130,12 @@ export class GmailAuthService {
           refreshToken: tokens.refresh_token,
           expiresAt: new Date(tokens.expiry_date)
         }
-        
+
         await this.accountService.saveAccount(accountInput)
         this.currentUserEmail = userEmail
         logInfo(`Account saved to database for ${userEmail}`)
       }
-      
+
       logInfo('Account authenticated successfully')
     } catch (error) {
       logError('Auth callback error:', error)
@@ -173,7 +173,9 @@ export class GmailAuthService {
         throw new Error('No authenticated user')
       }
 
-      const accountWithTokens = await this.accountService.getAccountWithTokens(this.currentUserEmail)
+      const accountWithTokens = await this.accountService.getAccountWithTokens(
+        this.currentUserEmail
+      )
       if (!accountWithTokens) {
         throw new Error('No account found')
       }
@@ -181,9 +183,9 @@ export class GmailAuthService {
       this.oauth2Client.setCredentials({
         refresh_token: accountWithTokens.refreshToken
       })
-      
+
       const { credentials } = await this.oauth2Client.refreshAccessToken()
-      
+
       if (credentials.access_token && credentials.expiry_date) {
         await this.accountService.updateTokens(
           this.currentUserEmail,

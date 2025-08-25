@@ -2,7 +2,7 @@ import { WorkflowPlan } from '../types/workflow'
 import { WorkflowEngine } from '../engine/WorkflowEngine'
 import { WorkflowDebugger } from '../debug/WorkflowDebugger'
 import { WorkflowLogger } from '../engine/WorkflowLogger'
-import { MailActionService } from '../../types/mailActions'
+import { IUnifiedEmailService } from '../../main/services/UnifiedEmailService'
 
 // Example workflow for testing and debugging
 const testWorkflow: WorkflowPlan = {
@@ -71,7 +71,7 @@ const testWorkflow: WorkflowPlan = {
 }
 
 // Example: How to debug a workflow
-export async function debugWorkflowExample(mailActions: MailActionService): Promise<void> {
+export async function debugWorkflowExample(emailService: IUnifiedEmailService): Promise<void> {
   console.log('=== WORKFLOW DEBUGGING EXAMPLE ===\n')
 
   // 1. Validate the workflow
@@ -97,7 +97,7 @@ export async function debugWorkflowExample(mailActions: MailActionService): Prom
 
   // 4. Create engine with logger
   const logger = new WorkflowLogger({ logToConsole: true })
-  const debugEngine = new WorkflowEngine(mailActions, logger)
+  const debugEngine = new WorkflowEngine(emailService, logger)
 
   // 5. Execute workflow with debugging
   console.log('4. Executing workflow with debug logging...\n')
@@ -133,14 +133,18 @@ export function debugStepByStep(): void {
     emailId: 'debug-email-123',
     email: {
       id: 'debug-email-123',
-      from: { email: 'test@example.com' },
-      to: [{ email: 'recipient@example.com' }],
+      from: { name: 'Test Sender', email: 'test@example.com' },
+      to: [{ name: 'Recipient', email: 'recipient@example.com' }],
       subject: 'Please analyze this',
       body: 'Important information that needs analysis',
       date: new Date(),
       labels: ['inbox'],
       isRead: false,
-      hasAttachment: false
+      isStarred: false,
+      isImportant: false,
+      threadId: 'thread-123',
+      snippet: 'Important information that needs...',
+      attachments: []
     }
   })
 
@@ -158,7 +162,7 @@ export function commonDebuggingScenarios(): void {
   console.log('1. Step failed after retries:')
   console.log('   - Check the error in step results')
   console.log('   - Verify input processing is correct')
-  console.log('   - Check if the mail action service is working')
+  console.log('   - Check if the email service is working')
   console.log('')
 
   console.log('2. Condition not evaluating correctly:')

@@ -171,7 +171,7 @@ ${args.emailBody}
 Please analyze this email and use the provide_analysis_result tool to return your analysis.`
       )
 
-      let toolCallResult: any = null
+      let toolCallResult: unknown = null
 
       // Use act() with the jsonResponseTool
       await model.act(analysisChat, [jsonResponseTool], {

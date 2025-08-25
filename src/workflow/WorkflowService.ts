@@ -2,15 +2,16 @@ import { WorkflowEngine, TriggerData } from './engine/WorkflowEngine'
 import { TriggerManager } from './engine/TriggerManager'
 import { WorkflowStorage } from './storage/WorkflowStorage'
 import { WorkflowPlan, WorkflowExecution } from './types/workflow'
-import { MailActionService, EmailMessage } from '../types/mailActions'
+import { IUnifiedEmailService } from '../main/services/UnifiedEmailService'
+import { Email } from '../shared/types/email'
 
 export class WorkflowService {
   private engine: WorkflowEngine
   private triggerManager: TriggerManager
   private storage: WorkflowStorage
 
-  constructor(mailActions: MailActionService, storageDir: string) {
-    this.engine = new WorkflowEngine(mailActions)
+  constructor(emailService: IUnifiedEmailService, storageDir: string) {
+    this.engine = new WorkflowEngine(emailService)
     this.triggerManager = new TriggerManager(this.engine)
     this.storage = new WorkflowStorage(storageDir)
   }
@@ -90,7 +91,7 @@ export class WorkflowService {
   }
 
   // Called when a new email arrives
-  async handleIncomingEmail(email: EmailMessage): Promise<void> {
+  async handleIncomingEmail(email: Email): Promise<void> {
     await this.triggerManager.handleIncomingEmail(email)
   }
 

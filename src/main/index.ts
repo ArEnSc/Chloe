@@ -1,10 +1,10 @@
 /**
  * IMPORTANT LICENSE NOTICE:
- * 
+ *
  * This software is dual-licensed:
  * - Open source use: GNU GPL v3.0
  * - Commercial use: See COMMERCIAL_AGREEMENT.md
- * 
+ *
  * Commercial use including YC applications or fundraising requires compliance with commercial terms.
  */
 

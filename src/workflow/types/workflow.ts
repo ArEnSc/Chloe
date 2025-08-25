@@ -1,5 +1,6 @@
 // Workflow engine types
-import { EmailComposition, ScheduledEmail } from '../../types/mailActions'
+import { EmailComposition } from '../../shared/types/email'
+import { ScheduledEmail } from '../../main/services/UnifiedEmailService'
 
 export interface WorkflowTrigger {
   id: string
@@ -22,8 +23,15 @@ export interface TimerTrigger {
   timezone?: string
 }
 
-// Available functions from MailActionService
-export type WorkflowFunction = 'sendEmail' | 'scheduleEmail' | 'listenForEmails' | 'analysis'
+// Available functions from UnifiedEmailService
+export type WorkflowFunction =
+  | 'sendEmail'
+  | 'scheduleEmail'
+  | 'listenForEmails'
+  | 'analysis'
+  | 'getEmails'
+  | 'addLabels'
+  | 'removeLabels'
 
 export interface WorkflowStep {
   id: string

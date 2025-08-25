@@ -4,7 +4,7 @@ import {
   EmailSubjectTrigger,
   TimerTrigger
 } from '../types/workflow'
-import { EmailMessage } from '../../types/mailActions'
+import { Email } from '../../shared/types/email'
 import { WorkflowEngine } from './WorkflowEngine'
 
 export class TriggerManager {
@@ -38,7 +38,7 @@ export class TriggerManager {
     }
   }
 
-  async handleIncomingEmail(email: EmailMessage): Promise<void> {
+  async handleIncomingEmail(email: Email): Promise<void> {
     const triggeredWorkflows: WorkflowPlan[] = []
 
     for (const workflow of this.enabledWorkflows.values()) {
@@ -58,7 +58,7 @@ export class TriggerManager {
     )
   }
 
-  private shouldTriggerForEmail(workflow: WorkflowPlan, email: EmailMessage): boolean {
+  private shouldTriggerForEmail(workflow: WorkflowPlan, email: Email): boolean {
     const { trigger } = workflow
 
     switch (trigger.type) {

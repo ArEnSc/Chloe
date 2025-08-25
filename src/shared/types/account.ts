@@ -44,5 +44,5 @@ export const ACCOUNT_IPC_CHANNELS = {
   UPDATE_TOKENS: 'account:update-tokens',
   UPDATE_LAST_SYNC: 'account:update-last-sync',
   DEACTIVATE_ACCOUNT: 'account:deactivate',
-  ACCOUNT_UPDATED: 'account:updated', // For notifications
+  ACCOUNT_UPDATED: 'account:updated' // For notifications
 } as const
