@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, type JSX } from 'react'
+import { useState, useRef, useEffect, memo, type JSX } from 'react'
 import { useEmailStore } from '@/store/emailStore'
 import { useLMStudioStore } from '@/store/lmStudioStore'
 import { useAutoScroll, useAutoResizeTextarea } from '@/hooks/layoutHooks'
@@ -10,6 +10,7 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeHighlight from 'rehype-highlight'
 import 'highlight.js/styles/atom-one-dark.css'
+import mermaid from 'mermaid'
 
 import {
   Send,
@@ -26,6 +27,99 @@ import {
 } from 'lucide-react'
 import { FlickeringGrid } from '@/components/ui/flickering-grid'
 import { AnimatedShinyText } from '@/components/magicui/animated-shiny-text'
+
+// Initialize mermaid with dark theme
+mermaid.initialize({
+  startOnLoad: true,
+  theme: 'dark',
+  themeVariables: {
+    primaryColor: '#1f2937',
+    primaryTextColor: '#e5e7eb',
+    primaryBorderColor: '#374151',
+    lineColor: '#6b7280',
+    secondaryColor: '#374151',
+    tertiaryColor: '#4b5563',
+    background: '#111827',
+    mainBkg: '#1f2937',
+    secondBkg: '#374151',
+    tertiaryBkg: '#4b5563',
+    textColor: '#e5e7eb',
+    borderColor: '#4b5563',
+    edgeLabelBackground: '#1f2937'
+  }
+})
+
+// Mermaid diagram component - wrapped in memo to prevent re-renders
+const MermaidDiagram = memo(function MermaidDiagram({ children }: { children: string }): JSX.Element {
+  const [diagram, setDiagram] = useState<string>('')
+  const [error, setError] = useState<string>('')
+  const [copied, setCopied] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const renderDiagram = async (): Promise<void> => {
+      if (!containerRef.current) return
+      
+      try {
+        // Generate unique ID for this diagram
+        const id = `mermaid-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+        
+        // Render the diagram
+        const { svg } = await mermaid.render(id, children)
+        setDiagram(svg)
+        setError('')
+      } catch (err) {
+        console.error('Mermaid error:', err)
+        setError('Failed to render diagram')
+      }
+    }
+
+    renderDiagram()
+  }, [children])
+
+  const handleCopy = async (): Promise<void> => {
+    try {
+      await navigator.clipboard.writeText(children)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch (err) {
+      logError('Failed to copy mermaid code:', err)
+    }
+  }
+
+  if (error) {
+    // If Mermaid fails, fall back to code block
+    return <CodeBlock className="language-mermaid">{children}</CodeBlock>
+  }
+
+  return (
+    <div className="my-4 flex justify-center">
+      <div className="relative group" ref={containerRef}>
+        {diagram ? (
+          <div 
+            className="bg-gray-900 p-4 rounded-lg overflow-x-auto max-w-full"
+            dangerouslySetInnerHTML={{ __html: diagram }}
+          />
+        ) : (
+          <div className="bg-gray-900 p-4 rounded-lg overflow-x-auto max-w-full">
+            <div className="animate-pulse bg-gray-800 h-32 w-64 rounded"></div>
+          </div>
+        )}
+        <button
+          onClick={handleCopy}
+          className="absolute top-2 right-2 p-1.5 rounded bg-gray-700 hover:bg-gray-600 opacity-0 group-hover:opacity-100 transition-opacity min-w-[32px] min-h-[32px] flex items-center justify-center"
+          title="Copy mermaid code"
+        >
+          {copied ? (
+            <Check className="h-4 w-4 text-green-400" />
+          ) : (
+            <Copy className="h-4 w-4 text-gray-300" />
+          )}
+        </button>
+      </div>
+    </div>
+  )
+})
 
 // Code block component with copy button
 function CodeBlock({
@@ -64,17 +158,22 @@ function CodeBlock({
   const match = /language-(\w+)/.exec(className || '')
   const language = match ? match[1] : ''
 
+  // Check if this is a mermaid code block
+  if (language === 'mermaid' && typeof children === 'string') {
+    return <MermaidDiagram key={children}>{children}</MermaidDiagram>
+  }
+
   return (
     <div className="relative group">
       <code
         ref={codeRef}
-        className={`${className} block overflow-x-auto text-gray-100`}
+        className={`${className} block overflow-x-auto text-gray-100 pr-16`}
       >
         {children}
       </code>
       <button
         onClick={handleCopy}
-        className="absolute top-2 right-2 p-1.5 rounded bg-gray-700 hover:bg-gray-600 opacity-0 group-hover:opacity-100 transition-opacity"
+        className="absolute top-2 right-2 p-1.5 rounded bg-gray-700 hover:bg-gray-600 opacity-0 group-hover:opacity-100 transition-opacity min-w-[32px] min-h-[32px] flex items-center justify-center"
         title="Copy code"
       >
         {copied ? (

@@ -56,6 +56,7 @@
     "html-to-text": "^9.0.5",
     "immer": "^10.1.1",
     "lucide-react": "^0.540.0",
+    "mermaid": "^11.10.1",
     "node-cron": "^4.2.1",
     "react-intersection-observer": "^9.16.0",
     "react-markdown": "^10.1.0",
