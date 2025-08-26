@@ -16,7 +16,7 @@ function App(): React.JSX.Element {
   // Auto-connect to LM Studio using the new store
   const { url, isConnected, isValidating, isAutoConnecting, connect, setAutoConnecting } =
     useLMStudioStore()
-  
+
   // Track retry attempts and timeouts
   const retryCount = useRef(0)
   const retryTimeouts = useRef<Set<NodeJS.Timeout>>(new Set())
@@ -30,7 +30,7 @@ function App(): React.JSX.Element {
 
     // Cleanup function to clear all timeouts
     return () => {
-      retryTimeouts.current.forEach(timeout => clearTimeout(timeout))
+      retryTimeouts.current.forEach((timeout) => clearTimeout(timeout))
       retryTimeouts.current.clear()
     }
   }, [isAutoConnecting, setAutoConnecting])
@@ -49,7 +49,7 @@ function App(): React.JSX.Element {
       const baseDelay = 3000 // 3 seconds
       const maxDelay = 60000 // 60 seconds max
       const delay = Math.min(baseDelay * Math.pow(2, retryCount.current), maxDelay)
-      
+
       logInfo(`Scheduling LM Studio auto-connect attempt ${retryCount.current + 1} in ${delay}ms`)
 
       const autoConnectDelay = setTimeout(() => {
@@ -67,10 +67,10 @@ function App(): React.JSX.Element {
           .catch((error) => {
             logError('Auto-connect failed:', error)
             setAutoConnecting(false)
-            
+
             // Increment retry count for next attempt
             retryCount.current++
-            
+
             // Stop retrying after 5 attempts
             if (retryCount.current >= 5) {
               logInfo('Max retry attempts reached, stopping auto-connect')
