@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, memo, type JSX } from 'react'
+import { useState, useRef, useEffect, memo, useMemo, type JSX } from 'react'
 import { useEmailStore } from '@/store/emailStore'
 import { useLMStudioStore } from '@/store/lmStudioStore'
 import { useAutoScroll, useAutoResizeTextarea } from '@/hooks/layoutHooks'
@@ -54,20 +54,34 @@ const MermaidDiagram = memo(function MermaidDiagram({ children }: { children: st
   const [diagram, setDiagram] = useState<string>('')
   const [error, setError] = useState<string>('')
   const [copied, setCopied] = useState(false)
-  const containerRef = useRef<HTMLDivElement>(null)
+  const idRef = useRef<string>(`mermaid-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`)
+
+  // Debug logging
+  console.log('[MermaidDiagram] Render called', { 
+    hasDiagram: !!diagram,
+    contentLength: children.length 
+  })
 
   useEffect(() => {
+    console.log('[MermaidDiagram] useEffect called', {
+      hasDiagram: !!diagram
+    })
+    
     const renderDiagram = async (): Promise<void> => {
-      if (!containerRef.current) return
-      
       try {
-        // Generate unique ID for this diagram
-        const id = `mermaid-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+        console.log('[MermaidDiagram] Starting render...')
+        
+        // Clean up any existing element with this ID
+        const existingEl = document.getElementById(idRef.current)
+        if (existingEl) {
+          existingEl.remove()
+        }
         
         // Render the diagram
-        const { svg } = await mermaid.render(id, children)
+        const { svg } = await mermaid.render(idRef.current, children)
         setDiagram(svg)
         setError('')
+        console.log('[MermaidDiagram] Render complete')
       } catch (err) {
         console.error('Mermaid error:', err)
         setError('Failed to render diagram')
@@ -75,7 +89,7 @@ const MermaidDiagram = memo(function MermaidDiagram({ children }: { children: st
     }
 
     renderDiagram()
-  }, [children])
+  }, [children]) // Re-render only when content changes
 
   const handleCopy = async (): Promise<void> => {
     try {
@@ -94,20 +108,23 @@ const MermaidDiagram = memo(function MermaidDiagram({ children }: { children: st
 
   return (
     <div className="my-4 flex justify-center">
-      <div className="relative group" ref={containerRef}>
+      <div className="relative group overflow-visible">
         {diagram ? (
           <div 
-            className="bg-gray-900 p-4 rounded-lg overflow-x-auto max-w-full"
+            className="bg-gray-900 p-4 pr-14 rounded-lg overflow-x-auto max-w-full"
             dangerouslySetInnerHTML={{ __html: diagram }}
           />
         ) : (
-          <div className="bg-gray-900 p-4 rounded-lg overflow-x-auto max-w-full">
-            <div className="animate-pulse bg-gray-800 h-32 w-64 rounded"></div>
+          <div className="bg-gray-900 p-4 rounded-lg overflow-x-auto max-w-full min-h-[200px] flex items-center justify-center">
+            <div className="flex flex-col items-center gap-3">
+              <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
+              <p className="text-sm text-gray-500">Rendering diagram...</p>
+            </div>
           </div>
         )}
         <button
           onClick={handleCopy}
-          className="absolute top-2 right-2 p-1.5 rounded bg-gray-700 hover:bg-gray-600 opacity-0 group-hover:opacity-100 transition-opacity min-w-[32px] min-h-[32px] flex items-center justify-center"
+          className="absolute top-2 right-2 p-1.5 rounded bg-gray-700 hover:bg-gray-600 opacity-0 group-hover:opacity-100 transition-opacity min-w-[32px] min-h-[32px] flex items-center justify-center flex-shrink-0 z-10"
           title="Copy mermaid code"
         >
           {copied ? (
@@ -119,6 +136,16 @@ const MermaidDiagram = memo(function MermaidDiagram({ children }: { children: st
       </div>
     </div>
   )
+}, (prevProps, nextProps) => {
+  // Custom comparison - only re-render if children content changes
+  const shouldSkipRender = prevProps.children === nextProps.children
+  console.log('[MermaidDiagram] Memo comparison', {
+    shouldSkipRender,
+    prevLength: prevProps.children.length,
+    nextLength: nextProps.children.length,
+    equal: prevProps.children === nextProps.children
+  })
+  return shouldSkipRender
 })
 
 // Code block component with copy button
@@ -160,20 +187,23 @@ function CodeBlock({
 
   // Check if this is a mermaid code block
   if (language === 'mermaid' && typeof children === 'string') {
-    return <MermaidDiagram key={children}>{children}</MermaidDiagram>
+    console.log('[CodeBlock] Detected mermaid block')
+    return <MermaidDiagram>{children}</MermaidDiagram>
   }
 
   return (
-    <div className="relative group">
-      <code
-        ref={codeRef}
-        className={`${className} block overflow-x-auto text-gray-100 pr-16`}
-      >
-        {children}
-      </code>
+    <div className="relative group overflow-visible">
+      <pre className="!bg-gray-900 !text-gray-100 !p-4 !pr-14 rounded-lg overflow-x-auto m-0">
+        <code
+          ref={codeRef}
+          className={`${className} block text-gray-100`}
+        >
+          {children}
+        </code>
+      </pre>
       <button
         onClick={handleCopy}
-        className="absolute top-2 right-2 p-1.5 rounded bg-gray-700 hover:bg-gray-600 opacity-0 group-hover:opacity-100 transition-opacity min-w-[32px] min-h-[32px] flex items-center justify-center"
+        className="absolute top-2 right-2 p-1.5 rounded bg-gray-700 hover:bg-gray-600 opacity-0 group-hover:opacity-100 transition-opacity min-w-[32px] min-h-[32px] flex items-center justify-center flex-shrink-0 z-10"
         title="Copy code"
       >
         {copied ? (
@@ -183,13 +213,95 @@ function CodeBlock({
         )}
       </button>
       {language && (
-        <div className="absolute top-2 left-2 text-xs text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="absolute top-2 left-2 text-xs text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
           {language}
         </div>
       )}
     </div>
   )
 }
+
+// Memoized markdown message component to prevent re-renders
+const MarkdownMessage = memo(function MarkdownMessage({ content }: { content: string }): JSX.Element {
+  console.log('[MarkdownMessage] Render called', { contentLength: content.length })
+  const components = useMemo(() => ({
+    // Use our custom CodeBlock component
+    code: ({ inline, className, children, ...props }: any) => (
+      <CodeBlock inline={inline} className={className}>
+        {children}
+      </CodeBlock>
+    ),
+    // Pre is handled by CodeBlock component, so just pass through
+    pre: ({ children, ...props }: any) => children,
+    // Custom paragraph styling to handle spacing
+    p: ({ children, ...props }: any) => (
+      <p className="mb-2 last:mb-0" {...props}>
+        {children}
+      </p>
+    ),
+    // Custom list styling
+    ul: ({ children, ...props }: any) => (
+      <ul className="list-disc pl-6 mb-2" {...props}>
+        {children}
+      </ul>
+    ),
+    ol: ({ children, ...props }: any) => (
+      <ol className="list-decimal pl-6 mb-2" {...props}>
+        {children}
+      </ol>
+    ),
+    // Table styling
+    table: ({ children, ...props }: any) => (
+      <div className="overflow-x-auto my-2">
+        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700" {...props}>
+          {children}
+        </table>
+      </div>
+    ),
+    thead: ({ children, ...props }: any) => (
+      <thead className="bg-gray-50 dark:bg-gray-800" {...props}>
+        {children}
+      </thead>
+    ),
+    tbody: ({ children, ...props }: any) => (
+      <tbody className="bg-white divide-y divide-gray-200 dark:bg-gray-900 dark:divide-gray-700" {...props}>
+        {children}
+      </tbody>
+    ),
+    tr: ({ children, ...props }: any) => (
+      <tr {...props}>{children}</tr>
+    ),
+    th: ({ children, ...props }: any) => (
+      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider" {...props}>
+        {children}
+      </th>
+    ),
+    td: ({ children, ...props }: any) => (
+      <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100" {...props}>
+        {children}
+      </td>
+    )
+  }), [])
+
+  return (
+    <ReactMarkdown
+      remarkPlugins={[remarkGfm]}
+      rehypePlugins={[rehypeHighlight]}
+      components={components}
+    >
+      {content}
+    </ReactMarkdown>
+  )
+}, (prevProps, nextProps) => {
+  // Only re-render if content actually changes
+  const shouldSkipRender = prevProps.content === nextProps.content
+  console.log('[MarkdownMessage] Memo comparison', {
+    shouldSkipRender,
+    prevLength: prevProps.content.length,
+    nextLength: nextProps.content.length
+  })
+  return shouldSkipRender
+})
 
 // Helper function to parse result and check for errors
 function parseResult(result: unknown): { parsedResult: unknown; isError: boolean } {
@@ -436,7 +548,7 @@ export function ChatView(): JSX.Element {
             <div key={message.id}>
               <div className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 <div
-                  className={`max-w-[80%] rounded-lg px-4 py-2 ${
+                  className={`max-w-[80%] rounded-lg px-4 py-2 overflow-hidden ${
                     message.role === 'user'
                       ? 'bg-primary text-primary-foreground'
                       : message.role === 'error'
@@ -458,77 +570,7 @@ export function ChatView(): JSX.Element {
                       <>
                         {/* Only use markdown renderer for assistant messages which likely contain markdown */}
                         {message.role === 'assistant' ? (
-                          <ReactMarkdown
-                            remarkPlugins={[remarkGfm]}
-                            rehypePlugins={[rehypeHighlight]}
-                            components={{
-                              // Use our custom CodeBlock component
-                              code: ({ inline, className, children, ...props }) => (
-                                <CodeBlock inline={inline} className={className}>
-                                  {children}
-                                </CodeBlock>
-                              ),
-                              // Custom pre styling to work with highlight.js
-                              pre: ({ children, ...props }) => (
-                                <pre
-                                  className="!bg-gray-900 !text-gray-100 !p-4 rounded-lg overflow-x-auto"
-                                  {...props}
-                                >
-                                  {children}
-                                </pre>
-                              ),
-                              // Custom paragraph styling to handle spacing
-                              p: ({ children, ...props }) => (
-                                <p className="mb-2 last:mb-0" {...props}>
-                                  {children}
-                                </p>
-                              ),
-                              // Custom list styling
-                              ul: ({ children, ...props }) => (
-                                <ul className="list-disc pl-6 mb-2" {...props}>
-                                  {children}
-                                </ul>
-                              ),
-                              ol: ({ children, ...props }) => (
-                                <ol className="list-decimal pl-6 mb-2" {...props}>
-                                  {children}
-                                </ol>
-                              ),
-                              // Table styling
-                              table: ({ children, ...props }) => (
-                                <div className="overflow-x-auto my-2">
-                                  <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700" {...props}>
-                                    {children}
-                                  </table>
-                                </div>
-                              ),
-                              thead: ({ children, ...props }) => (
-                                <thead className="bg-gray-50 dark:bg-gray-800" {...props}>
-                                  {children}
-                                </thead>
-                              ),
-                              tbody: ({ children, ...props }) => (
-                                <tbody className="bg-white divide-y divide-gray-200 dark:bg-gray-900 dark:divide-gray-700" {...props}>
-                                  {children}
-                                </tbody>
-                              ),
-                              tr: ({ children, ...props }) => (
-                                <tr {...props}>{children}</tr>
-                              ),
-                              th: ({ children, ...props }) => (
-                                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider" {...props}>
-                                  {children}
-                                </th>
-                              ),
-                              td: ({ children, ...props }) => (
-                                <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100" {...props}>
-                                  {children}
-                                </td>
-                              )
-                            }}
-                          >
-                            {message.content}
-                          </ReactMarkdown>
+                          <MarkdownMessage content={message.content} />
                         ) : (
                           // User messages rendered as plain text with original styling
                           <div className="whitespace-pre-wrap break-words">{message.content}</div>
