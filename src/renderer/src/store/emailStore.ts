@@ -57,8 +57,15 @@ interface EmailState {
   selectedAutomatedTask: string | null
   searchQuery: string
   isLoading: boolean
+  isInitialLoad: boolean
   error: string | null
   lastSyncTime: Date | null
+  syncProgress: {
+    current: number
+    total: number
+    phase: 'fetching' | 'processing' | 'saving'
+    message: string
+  } | null
 
   // Pagination
   currentPage: number
@@ -90,7 +97,9 @@ interface EmailState {
 
   setSearchQuery: (query: string) => void
   setLoading: (loading: boolean) => void
+  setInitialLoad: (loading: boolean) => void
   setError: (error: string | null) => void
+  setSyncProgress: (progress: EmailState['syncProgress']) => void
 
   // Pagination actions
   setCurrentPage: (page: number) => void
@@ -127,8 +136,10 @@ export const useEmailStore = create<EmailState>()(
         selectedAutomatedTask: null,
         searchQuery: '',
         isLoading: false,
+        isInitialLoad: true,
         error: null,
         lastSyncTime: null,
+        syncProgress: null,
 
         // Pagination state
         currentPage: 1,
@@ -245,7 +256,9 @@ export const useEmailStore = create<EmailState>()(
           set({ searchQuery: query, currentPage: 1 })
         },
         setLoading: (loading) => set({ isLoading: loading }),
+        setInitialLoad: (loading) => set({ isInitialLoad: loading }),
         setError: (error) => set({ error }),
+        setSyncProgress: (progress) => set({ syncProgress: progress }),
 
         // Pagination actions
         setCurrentPage: (page) => set({ currentPage: page }),

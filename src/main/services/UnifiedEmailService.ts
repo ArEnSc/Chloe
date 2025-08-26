@@ -276,8 +276,19 @@ export class UnifiedEmailService implements IUnifiedEmailService {
 
       const emails: Email[] = []
 
+      // Send initial progress
+      if (messages.length > 0) {
+        this.broadcastSyncProgress({
+          current: 0,
+          total: messages.length,
+          phase: 'fetching',
+          message: `Fetching ${messages.length} emails...`
+        })
+      }
+
       // Fetch full details for each message
-      for (const message of messages) {
+      for (let i = 0; i < messages.length; i++) {
+        const message = messages[i]
         if (!message.id) continue
 
         try {
@@ -290,6 +301,16 @@ export class UnifiedEmailService implements IUnifiedEmailService {
           if (email) {
             emails.push(email)
           }
+
+          // Update progress every 5 messages or on the last one
+          if ((i + 1) % 5 === 0 || i === messages.length - 1) {
+            this.broadcastSyncProgress({
+              current: i + 1,
+              total: messages.length,
+              phase: 'fetching',
+              message: `Fetching email ${i + 1} of ${messages.length}...`
+            })
+          }
         } catch (error) {
           logError(`[UnifiedEmailService] Error fetching message ${message.id}:`, error)
         }
@@ -297,6 +318,12 @@ export class UnifiedEmailService implements IUnifiedEmailService {
 
       // Sync to database if requested
       if (syncToDb && emails.length > 0) {
+        this.broadcastSyncProgress({
+          current: emails.length,
+          total: emails.length,
+          phase: 'saving',
+          message: 'Saving emails to database...'
+        })
         await this.saveToDatabase(emails)
       }
 
@@ -716,6 +743,9 @@ export class UnifiedEmailService implements IUnifiedEmailService {
         await this.fetchEmails({ limit: 300 }, true)
         this.lastSyncTime = new Date()
 
+        // Clear progress
+        this.broadcastSyncProgress(null)
+
         BrowserWindow.getAllWindows().forEach((window) => {
           window.webContents.send(EMAIL_IPC_CHANNELS.EMAIL_SYNC_COMPLETE, {
             timestamp: this.lastSyncTime,
@@ -726,6 +756,8 @@ export class UnifiedEmailService implements IUnifiedEmailService {
         return { success: true, timestamp: this.lastSyncTime }
       } catch (error) {
         logError('[UnifiedEmailService] IPC sync error:', error)
+        // Clear progress on error
+        this.broadcastSyncProgress(null)
         throw error
       }
     })
@@ -775,12 +807,12 @@ export class UnifiedEmailService implements IUnifiedEmailService {
             database.delete(emails)
           })
         }
-        
+
         // Reset last sync info to force full sync next time
         const userEmail = await this.gmailAuthService.getUserEmail()
         await this.accountService.clearLastHistoryId(userEmail)
         this.lastSyncTime = null
-        
+
         logInfo('[UnifiedEmailService] Cleared all emails and reset sync history')
         return { success: true }
       } catch (error) {
@@ -830,6 +862,19 @@ export class UnifiedEmailService implements IUnifiedEmailService {
 
     BrowserWindow.getAllWindows().forEach((window) => {
       window.webContents.send(EMAIL_IPC_CHANNELS.EMAIL_NEW_EMAILS, transformedEmails)
+    })
+  }
+
+  private broadcastSyncProgress(
+    progress: {
+      current: number
+      total: number
+      phase: 'fetching' | 'processing' | 'saving'
+      message: string
+    } | null
+  ): void {
+    BrowserWindow.getAllWindows().forEach((window) => {
+      window.webContents.send(EMAIL_IPC_CHANNELS.EMAIL_SYNC_PROGRESS, progress)
     })
   }
 

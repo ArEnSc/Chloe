@@ -95,7 +95,8 @@ export const EMAIL_IPC_CHANNELS = {
 
   // Email events
   EMAIL_NEW_EMAILS: 'email:newEmails',
-  EMAIL_SYNC_COMPLETE: 'email:syncComplete'
+  EMAIL_SYNC_COMPLETE: 'email:syncComplete',
+  EMAIL_SYNC_PROGRESS: 'email:syncProgress'
 } as const
 
 export type EmailIPCChannel = (typeof EMAIL_IPC_CHANNELS)[keyof typeof EMAIL_IPC_CHANNELS]
