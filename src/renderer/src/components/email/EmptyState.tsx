@@ -2,7 +2,6 @@ import React from 'react'
 import { Inbox, RefreshCw, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useEmailStore } from '@/store/emailStore'
-import { useEmailSync } from '@/hooks/useEmailSync'
 
 interface EmptyStateProps {
   isInitialLoad?: boolean
@@ -15,7 +14,7 @@ export function EmptyState({
   isLoading,
   error
 }: EmptyStateProps): React.JSX.Element {
-  const { syncEmails } = useEmailSync()
+  const syncEmails = useEmailStore((state) => state.syncEmails)
 
   if (isInitialLoad) {
     return (

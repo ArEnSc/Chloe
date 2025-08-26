@@ -3,6 +3,8 @@ import { devtools, persist } from 'zustand/middleware'
 import { ipc } from '@renderer/lib/ipc'
 import { EMAIL_IPC_CHANNELS } from '@shared/types/email'
 import { logInfo, logError } from '@shared/logger'
+import { ERROR_MESSAGES } from '@renderer/shared/constants'
+import type { Email as EmailType } from '@shared/types/email'
 export interface Email {
   id: string
   threadId: string
@@ -58,6 +60,7 @@ interface EmailState {
   searchQuery: string
   isLoading: boolean
   isInitialLoad: boolean
+  isInitialized: boolean
   error: string | null
   lastSyncTime: Date | null
   syncProgress: {
@@ -115,6 +118,10 @@ interface EmailState {
   getPaginatedEmails: () => Email[]
   updateTotalPages: () => void
   getSelectedEmail: () => Email | null
+
+  // Sync actions
+  initializeEmailSync: () => Promise<void>
+  syncEmails: () => Promise<void>
 }
 
 const defaultFolders: EmailFolder[] = [
@@ -137,6 +144,7 @@ export const useEmailStore = create<EmailState>()(
         searchQuery: '',
         isLoading: false,
         isInitialLoad: true,
+        isInitialized: false,
         error: null,
         lastSyncTime: null,
         syncProgress: null,
@@ -345,6 +353,100 @@ export const useEmailStore = create<EmailState>()(
         getSelectedEmail: () => {
           const state = get()
           return state.emails.find((email) => email.id === state.selectedEmailId) || null
+        },
+
+        initializeEmailSync: async () => {
+          const state = get()
+
+          // Only initialize once
+          if (state.isInitialized) {
+            return
+          }
+
+          set({ isInitialized: true, error: null })
+
+          try {
+            // Fetch emails from local cache first
+            if (ipc.isAvailable()) {
+              const emails = await ipc.invoke<EmailType[]>(EMAIL_IPC_CHANNELS.EMAIL_FETCH)
+              set({ emails: emails as Email[], isInitialLoad: false })
+              logInfo(`[EmailStore] Loaded ${emails.length} emails from local cache`)
+
+              // Set up event listeners
+              const handleNewEmails = (_event: unknown, emails: EmailType[]): void => {
+                set({ emails: emails as Email[] })
+              }
+
+              const handleSyncComplete = async (
+                _event: unknown,
+                data: { timestamp: string; count: number }
+              ): Promise<void> => {
+                set({ lastSyncTime: new Date(data.timestamp) })
+                // Fetch updated emails from database after sync completes
+                try {
+                  const emails = await ipc.invoke<EmailType[]>(EMAIL_IPC_CHANNELS.EMAIL_FETCH)
+                  set({ emails: emails as Email[] })
+                } catch (error) {
+                  logError(error as Error, 'EMAIL_FETCH_AFTER_SYNC_ERROR')
+                }
+              }
+
+              const handleSyncProgress = (
+                _event: unknown,
+                progress: { current: number; total: number; phase: string; message: string } | null
+              ): void => {
+                set({ syncProgress: progress })
+              }
+
+              // Set up listeners
+              ipc.on(
+                EMAIL_IPC_CHANNELS.EMAIL_NEW_EMAILS,
+                handleNewEmails as (...args: unknown[]) => void
+              )
+              ipc.on(
+                EMAIL_IPC_CHANNELS.EMAIL_SYNC_COMPLETE,
+                handleSyncComplete as (...args: unknown[]) => void
+              )
+              ipc.on(
+                EMAIL_IPC_CHANNELS.EMAIL_SYNC_PROGRESS,
+                handleSyncProgress as (...args: unknown[]) => void
+              )
+
+              // Start polling
+              await ipc.invoke(EMAIL_IPC_CHANNELS.EMAIL_START_POLLING)
+              logInfo('[EmailStore] Started email polling')
+            }
+          } catch (error) {
+            logError(error as Error, 'EMAIL_INIT_ERROR')
+            set({
+              error: error instanceof Error ? error.message : ERROR_MESSAGES.EMAIL_FETCH_FAILED,
+              isInitialLoad: false
+            })
+          }
+        },
+
+        syncEmails: async () => {
+          set({ isLoading: true, error: null })
+
+          try {
+            const result = await ipc.invoke<{ success: boolean; timestamp: string }>(
+              EMAIL_IPC_CHANNELS.EMAIL_SYNC
+            )
+
+            if (result.success && result.timestamp) {
+              set({ lastSyncTime: new Date(result.timestamp) })
+              // Fetch updated emails from database
+              const emails = await ipc.invoke<EmailType[]>(EMAIL_IPC_CHANNELS.EMAIL_FETCH)
+              set({ emails: emails as Email[] })
+            }
+          } catch (error) {
+            logError(error as Error, 'EMAIL_SYNC_ERROR')
+            set({
+              error: error instanceof Error ? error.message : ERROR_MESSAGES.EMAIL_SYNC_FAILED
+            })
+          } finally {
+            set({ isLoading: false })
+          }
         }
       }),
       {

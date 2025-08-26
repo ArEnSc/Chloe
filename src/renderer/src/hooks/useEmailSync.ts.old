@@ -7,7 +7,8 @@ import { logError, logInfo } from '@shared/logger'
 import type { Email } from '@shared/types/email'
 
 export function useEmailSync(): { syncEmails: () => Promise<void> } {
-  const { setEmails, setLoading, setError, setLastSyncTime } = useEmailStore()
+  const { setEmails, setLoading, setInitialLoad, setError, setLastSyncTime, setSyncProgress } =
+    useEmailStore()
 
   // Manual sync function
   const syncEmails = useCallback(async () => {
@@ -31,31 +32,32 @@ export function useEmailSync(): { syncEmails: () => Promise<void> } {
     } finally {
       setLoading(false)
     }
-  }, [setEmails, setLoading, setError, setLastSyncTime])
+  }, []) // Empty dependency array - setters are stable
 
   useEffect(() => {
-    // Fetch emails on mount
-    const fetchEmails = async (): Promise<void> => {
-      setLoading(true)
+    // Fetch emails from local cache on mount
+    const fetchLocalEmails = async (): Promise<void> => {
       setError(null)
 
       try {
         if (ipc.isAvailable()) {
           const emails = await ipc.invoke<Email[]>(EMAIL_IPC_CHANNELS.EMAIL_FETCH)
           setEmails(emails)
+          setInitialLoad(false) // Mark initial load complete after local fetch
+          logInfo(`[useEmailSync] Loaded ${emails.length} emails from local cache`)
         } else {
           // Development fallback
           logInfo('Email sync not available in development mode')
+          setInitialLoad(false)
         }
       } catch (error) {
         logError(error as Error, 'EMAIL_FETCH_ERROR')
         setError(error instanceof Error ? error.message : ERROR_MESSAGES.EMAIL_FETCH_FAILED)
-      } finally {
-        setLoading(false)
+        setInitialLoad(false)
       }
     }
 
-    fetchEmails()
+    fetchLocalEmails()
 
     // Listen for new emails
     const handleNewEmails = (_event: unknown, emails: Email[]): void => {
@@ -77,6 +79,14 @@ export function useEmailSync(): { syncEmails: () => Promise<void> } {
       }
     }
 
+    // Listen for sync progress events
+    const handleSyncProgress = (
+      _event: unknown,
+      progress: { current: number; total: number; phase: string; message: string } | null
+    ): void => {
+      setSyncProgress(progress)
+    }
+
     // Set up event listeners
     const unsubscribeNewEmails = ipc.on(
       EMAIL_IPC_CHANNELS.EMAIL_NEW_EMAILS,
@@ -85,6 +95,10 @@ export function useEmailSync(): { syncEmails: () => Promise<void> } {
     const unsubscribeSyncComplete = ipc.on(
       EMAIL_IPC_CHANNELS.EMAIL_SYNC_COMPLETE,
       handleSyncComplete as (...args: unknown[]) => void
+    )
+    const unsubscribeSyncProgress = ipc.on(
+      EMAIL_IPC_CHANNELS.EMAIL_SYNC_PROGRESS,
+      handleSyncProgress as (...args: unknown[]) => void
     )
 
     // Start polling
@@ -96,11 +110,12 @@ export function useEmailSync(): { syncEmails: () => Promise<void> } {
     return () => {
       unsubscribeNewEmails()
       unsubscribeSyncComplete()
+      unsubscribeSyncProgress()
       ipc.invoke(EMAIL_IPC_CHANNELS.EMAIL_STOP_POLLING).catch((error) => {
         logError(error, 'EMAIL_POLLING_STOP_ERROR')
       })
     }
-  }, [setEmails, setLoading, setError, setLastSyncTime])
+  }, []) // Empty dependency array - setters are stable
 
   return { syncEmails }
 }

@@ -6,6 +6,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Button } from '@/components/ui/button'
 import { Star, Paperclip, Circle, MoreHorizontal, ChevronLeft, ChevronRight } from 'lucide-react'
 import { getLabelConfig } from '@/lib/labels'
+import { EmptyState } from './EmptyState'
 
 function formatEmailDate(date: Date): string {
   if (isToday(date)) {
@@ -30,7 +31,10 @@ export function EmailList(): React.JSX.Element {
     totalPages,
     pageSize,
     nextPage,
-    previousPage
+    previousPage,
+    isLoading,
+    isInitialLoad,
+    error
   } = useEmailStore()
 
   const paginatedEmails = getPaginatedEmails()
@@ -56,10 +60,10 @@ export function EmailList(): React.JSX.Element {
 
       {/* Email List */}
       <ScrollArea className="flex-1">
-        {paginatedEmails.length === 0 ? (
-          <div className="flex h-full items-center justify-center p-8 text-center">
-            <p className="text-sm text-muted-foreground">No emails found</p>
-          </div>
+        {isInitialLoad || (paginatedEmails.length === 0 && (isLoading || error)) ? (
+          <EmptyState isInitialLoad={isInitialLoad} isLoading={isLoading} error={error} />
+        ) : paginatedEmails.length === 0 ? (
+          <EmptyState isLoading={isLoading} />
         ) : (
           <div className="divide-y">
             {paginatedEmails.map((email) => (

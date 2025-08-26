@@ -2,7 +2,6 @@ import { useState, useEffect, type JSX } from 'react'
 import { useSettingsStore } from '@/store/settingsStore'
 import { useLMStudioStore } from '@/store/lmStudioStore'
 import { useEmailStore } from '@/store/emailStore'
-import { useEmailSync } from '@/hooks/useEmailSync'
 import { ipc } from '@/lib/ipc'
 import { EMAIL_IPC_CHANNELS } from '@shared/types/email'
 import { AUTH_IPC_CHANNELS } from '@shared/types/auth'
@@ -135,8 +134,7 @@ export function Settings(): JSX.Element {
     connect: validateLMStudio
   } = useLMStudioStore()
 
-  const { clearAllEmails } = useEmailStore()
-  const { syncEmails } = useEmailSync()
+  const { clearAllEmails, syncEmails } = useEmailStore()
   const [showClearDialog, setShowClearDialog] = useState(false)
   const [isClearing, setIsClearing] = useState(false)
 

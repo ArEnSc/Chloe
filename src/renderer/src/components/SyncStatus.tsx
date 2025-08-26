@@ -2,14 +2,12 @@ import { format } from 'date-fns'
 import { RefreshCw, CheckCircle, AlertCircle, Settings, Bot, Wifi, WifiOff } from 'lucide-react'
 import { useEmailStore } from '@/store/emailStore'
 import { useLMStudioStore } from '@/store/lmStudioStore'
-import { useEmailSync } from '@/hooks/useEmailSync'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import type { JSX } from 'react'
 
 export function SyncStatus(): JSX.Element {
-  const { isLoading, lastSyncTime, error, syncProgress } = useEmailStore()
-  const { syncEmails } = useEmailSync()
+  const { isLoading, lastSyncTime, error, syncProgress, syncEmails } = useEmailStore()
   const { isConnected, isAutoConnecting, isValidating, model } = useLMStudioStore()
 
   const handleOpenSettings = (): void => {
