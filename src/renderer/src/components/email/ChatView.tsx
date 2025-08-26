@@ -6,6 +6,10 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { logError } from '@shared/logger'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import rehypeHighlight from 'rehype-highlight'
+import 'highlight.js/styles/github-dark.css'
 
 import {
   Send,
@@ -283,15 +287,101 @@ export function ChatView(): JSX.Element {
                   )}
 
                   {/* Message content */}
-                  <div className="text-sm whitespace-pre-wrap break-words">
-                    {message.content ||
-                      (isStreaming && message.id === streamingMessageId && !message.content ? (
-                        <AnimatedShinyText className="text-sm">Thinking...</AnimatedShinyText>
-                      ) : (
-                        ''
-                      ))}
-                    {isStreaming && message.id === streamingMessageId && message.content && (
-                      <span className="inline-block ml-1 animate-pulse">▋</span>
+                  <div className="text-sm">
+                    {message.content ? (
+                      <>
+                        {/* Only use markdown renderer for assistant messages which likely contain markdown */}
+                        {message.role === 'assistant' ? (
+                          <ReactMarkdown
+                            remarkPlugins={[remarkGfm]}
+                            rehypePlugins={[rehypeHighlight]}
+                            components={{
+                              // Custom code block styling
+                              code: ({ inline, className, children, ...props }) => {
+                                const match = /language-(\w+)/.exec(className || '')
+                                return !inline && match ? (
+                                  <code className={`${className} block overflow-x-auto`} {...props}>
+                                    {children}
+                                  </code>
+                                ) : (
+                                  <code className="bg-muted px-1 py-0.5 rounded text-xs" {...props}>
+                                    {children}
+                                  </code>
+                                )
+                              },
+                              // Custom pre styling to work with highlight.js
+                              pre: ({ children, ...props }) => (
+                                <pre
+                                  className="!bg-gray-900 !p-4 rounded-lg overflow-x-auto"
+                                  {...props}
+                                >
+                                  {children}
+                                </pre>
+                              ),
+                              // Custom paragraph styling to handle spacing
+                              p: ({ children, ...props }) => (
+                                <p className="mb-2 last:mb-0" {...props}>
+                                  {children}
+                                </p>
+                              ),
+                              // Custom list styling
+                              ul: ({ children, ...props }) => (
+                                <ul className="list-disc pl-6 mb-2" {...props}>
+                                  {children}
+                                </ul>
+                              ),
+                              ol: ({ children, ...props }) => (
+                                <ol className="list-decimal pl-6 mb-2" {...props}>
+                                  {children}
+                                </ol>
+                              ),
+                              // Table styling
+                              table: ({ children, ...props }) => (
+                                <div className="overflow-x-auto my-2">
+                                  <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700" {...props}>
+                                    {children}
+                                  </table>
+                                </div>
+                              ),
+                              thead: ({ children, ...props }) => (
+                                <thead className="bg-gray-50 dark:bg-gray-800" {...props}>
+                                  {children}
+                                </thead>
+                              ),
+                              tbody: ({ children, ...props }) => (
+                                <tbody className="bg-white divide-y divide-gray-200 dark:bg-gray-900 dark:divide-gray-700" {...props}>
+                                  {children}
+                                </tbody>
+                              ),
+                              tr: ({ children, ...props }) => (
+                                <tr {...props}>{children}</tr>
+                              ),
+                              th: ({ children, ...props }) => (
+                                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider" {...props}>
+                                  {children}
+                                </th>
+                              ),
+                              td: ({ children, ...props }) => (
+                                <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100" {...props}>
+                                  {children}
+                                </td>
+                              )
+                            }}
+                          >
+                            {message.content}
+                          </ReactMarkdown>
+                        ) : (
+                          // User messages rendered as plain text with original styling
+                          <div className="whitespace-pre-wrap break-words">{message.content}</div>
+                        )}
+                        {isStreaming && message.id === streamingMessageId && (
+                          <span className="inline-block ml-1 animate-pulse">▋</span>
+                        )}
+                      </>
+                    ) : isStreaming && message.id === streamingMessageId && !message.content ? (
+                      <AnimatedShinyText className="text-sm">Thinking...</AnimatedShinyText>
+                    ) : (
+                      ''
                     )}
                   </div>
 
