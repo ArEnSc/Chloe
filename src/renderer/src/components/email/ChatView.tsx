@@ -172,7 +172,7 @@ function CodeBlock({
   }
 
   return (
-    <div className="relative group overflow-visible">
+    <div className="relative group overflow-visible my-3">
       <pre className="!bg-gray-900 !text-gray-100 !p-4 !pr-14 rounded-lg overflow-x-auto m-0">
         <code
           ref={codeRef}
@@ -214,24 +214,50 @@ const MarkdownMessage = memo(function MarkdownMessage({ content }: { content: st
     pre: ({ children, ...props }: any) => children,
     // Custom paragraph styling to handle spacing
     p: ({ children, ...props }: any) => (
-      <p className="mb-2 last:mb-0" {...props}>
+      <p className="mb-3 last:mb-0" {...props}>
         {children}
       </p>
     ),
     // Custom list styling
     ul: ({ children, ...props }: any) => (
-      <ul className="list-disc pl-6 mb-2" {...props}>
+      <ul className="list-disc pl-6 mb-3 space-y-1" {...props}>
         {children}
       </ul>
     ),
     ol: ({ children, ...props }: any) => (
-      <ol className="list-decimal pl-6 mb-2" {...props}>
+      <ol className="list-decimal pl-6 mb-3 space-y-1" {...props}>
         {children}
       </ol>
     ),
+    // Heading styling
+    h1: ({ children, ...props }: any) => (
+      <h1 className="text-xl font-bold mb-3 mt-4 first:mt-0" {...props}>
+        {children}
+      </h1>
+    ),
+    h2: ({ children, ...props }: any) => (
+      <h2 className="text-lg font-semibold mb-3 mt-4 first:mt-0" {...props}>
+        {children}
+      </h2>
+    ),
+    h3: ({ children, ...props }: any) => (
+      <h3 className="text-base font-semibold mb-2 mt-3 first:mt-0" {...props}>
+        {children}
+      </h3>
+    ),
+    // Blockquote styling
+    blockquote: ({ children, ...props }: any) => (
+      <blockquote className="border-l-4 border-gray-500 pl-4 py-1 my-3 text-gray-600 dark:text-gray-400" {...props}>
+        {children}
+      </blockquote>
+    ),
+    // Horizontal rule
+    hr: ({ ...props }: any) => (
+      <hr className="my-4 border-gray-200 dark:border-gray-700" {...props} />
+    ),
     // Table styling
     table: ({ children, ...props }: any) => (
-      <div className="overflow-x-auto my-2">
+      <div className="overflow-x-auto my-3">
         <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700" {...props}>
           {children}
         </table>
