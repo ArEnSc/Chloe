@@ -346,9 +346,9 @@ export const useEmailStore = create<EmailState>()(
               logInfo(`[EmailStore] Loaded ${emails.length} emails from local cache`)
 
               // Set up event listeners
-              const handleNewEmails = (_event: unknown, emails: Email[]): void => {
-                set({ emails: emails as UIEmail[] })
-              }
+              // Note: We don't use handleNewEmails anymore because it sends incremental updates
+              // which can be empty when there are no new emails. We rely on handleSyncComplete
+              // to fetch the full email list from the database.
 
               const handleSyncComplete = async (
                 _event: unknown,
@@ -372,10 +372,7 @@ export const useEmailStore = create<EmailState>()(
               }
 
               // Set up listeners
-              ipc.on(
-                EMAIL_IPC_CHANNELS.EMAIL_NEW_EMAILS,
-                handleNewEmails as (...args: unknown[]) => void
-              )
+              // Don't listen to EMAIL_NEW_EMAILS as it sends incremental updates
               ipc.on(
                 EMAIL_IPC_CHANNELS.EMAIL_SYNC_COMPLETE,
                 handleSyncComplete as (...args: unknown[]) => void
