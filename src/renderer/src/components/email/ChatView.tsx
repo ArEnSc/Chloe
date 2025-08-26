@@ -9,7 +9,7 @@ import { logError } from '@shared/logger'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeHighlight from 'rehype-highlight'
-import 'highlight.js/styles/github-dark.css'
+import 'highlight.js/styles/atom-one-dark.css'
 
 import {
   Send,
@@ -68,7 +68,7 @@ function CodeBlock({
     <div className="relative group">
       <code
         ref={codeRef}
-        className={`${className} block overflow-x-auto`}
+        className={`${className} block overflow-x-auto text-gray-100`}
       >
         {children}
       </code>
@@ -372,7 +372,7 @@ export function ChatView(): JSX.Element {
                               // Custom pre styling to work with highlight.js
                               pre: ({ children, ...props }) => (
                                 <pre
-                                  className="!bg-gray-900 !p-4 rounded-lg overflow-x-auto"
+                                  className="!bg-gray-900 !text-gray-100 !p-4 rounded-lg overflow-x-auto"
                                   {...props}
                                 >
                                   {children}
