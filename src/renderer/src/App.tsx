@@ -30,8 +30,10 @@ function App(): React.JSX.Element {
 
     // Cleanup function to clear all timeouts
     return () => {
-      retryTimeouts.current.forEach((timeout) => clearTimeout(timeout))
-      retryTimeouts.current.clear()
+      // Copy ref value to avoid accessing stale ref in cleanup
+      const timeouts = retryTimeouts.current
+      timeouts.forEach((timeout) => clearTimeout(timeout))
+      timeouts.clear()
     }
   }, [isAutoConnecting, setAutoConnecting])
 
@@ -83,7 +85,9 @@ function App(): React.JSX.Element {
 
       return () => {
         clearTimeout(autoConnectDelay)
-        retryTimeouts.current.delete(autoConnectDelay)
+        // Copy ref value to avoid accessing stale ref in cleanup
+        const timeouts = retryTimeouts.current
+        timeouts.delete(autoConnectDelay)
       }
     }
   }, [url, isConnected, isValidating, isAutoConnecting, connect, setAutoConnecting])

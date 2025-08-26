@@ -922,7 +922,7 @@ export class UnifiedEmailService implements IUnifiedEmailService {
   /**
    * Schedule an email to be sent later
    */
-  async scheduleEmail(scheduledEmail: ScheduledEmail): Promise<ScheduleEmailResult> {
+  async scheduleEmail(_scheduledEmail: ScheduledEmail): Promise<ScheduleEmailResult> {
     // TODO: Implement email scheduling
     // For now, return a placeholder response
     return {
@@ -983,8 +983,8 @@ export class UnifiedEmailService implements IUnifiedEmailService {
    * Listen for incoming emails matching criteria
    */
   async listenForEmails(
-    senders: string[],
-    options?: {
+    _senders: string[],
+    _options?: {
       subject?: string
       labels?: string[]
       callback?: (email: Email) => void
@@ -1002,8 +1002,8 @@ export class UnifiedEmailService implements IUnifiedEmailService {
    * Analyze email content using LLM
    */
   async analysis(
-    prompt: string,
-    context?: {
+    _prompt: string,
+    _context?: {
       emails?: Email[]
       data?: Record<string, unknown>
     }
