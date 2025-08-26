@@ -56,20 +56,9 @@ const MermaidDiagram = memo(function MermaidDiagram({ children }: { children: st
   const [copied, setCopied] = useState(false)
   const idRef = useRef<string>(`mermaid-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`)
 
-  // Debug logging
-  console.log('[MermaidDiagram] Render called', { 
-    hasDiagram: !!diagram,
-    contentLength: children.length 
-  })
-
   useEffect(() => {
-    console.log('[MermaidDiagram] useEffect called', {
-      hasDiagram: !!diagram
-    })
-    
     const renderDiagram = async (): Promise<void> => {
       try {
-        console.log('[MermaidDiagram] Starting render...')
         
         // Clean up any existing element with this ID
         const existingEl = document.getElementById(idRef.current)
@@ -81,7 +70,6 @@ const MermaidDiagram = memo(function MermaidDiagram({ children }: { children: st
         const { svg } = await mermaid.render(idRef.current, children)
         setDiagram(svg)
         setError('')
-        console.log('[MermaidDiagram] Render complete')
       } catch (err) {
         console.error('Mermaid error:', err)
         setError('Failed to render diagram')
@@ -138,14 +126,7 @@ const MermaidDiagram = memo(function MermaidDiagram({ children }: { children: st
   )
 }, (prevProps, nextProps) => {
   // Custom comparison - only re-render if children content changes
-  const shouldSkipRender = prevProps.children === nextProps.children
-  console.log('[MermaidDiagram] Memo comparison', {
-    shouldSkipRender,
-    prevLength: prevProps.children.length,
-    nextLength: nextProps.children.length,
-    equal: prevProps.children === nextProps.children
-  })
-  return shouldSkipRender
+  return prevProps.children === nextProps.children
 })
 
 // Code block component with copy button
@@ -187,7 +168,6 @@ function CodeBlock({
 
   // Check if this is a mermaid code block
   if (language === 'mermaid' && typeof children === 'string') {
-    console.log('[CodeBlock] Detected mermaid block')
     return <MermaidDiagram>{children}</MermaidDiagram>
   }
 
@@ -223,7 +203,6 @@ function CodeBlock({
 
 // Memoized markdown message component to prevent re-renders
 const MarkdownMessage = memo(function MarkdownMessage({ content }: { content: string }): JSX.Element {
-  console.log('[MarkdownMessage] Render called', { contentLength: content.length })
   const components = useMemo(() => ({
     // Use our custom CodeBlock component
     code: ({ inline, className, children, ...props }: any) => (
@@ -294,13 +273,7 @@ const MarkdownMessage = memo(function MarkdownMessage({ content }: { content: st
   )
 }, (prevProps, nextProps) => {
   // Only re-render if content actually changes
-  const shouldSkipRender = prevProps.content === nextProps.content
-  console.log('[MarkdownMessage] Memo comparison', {
-    shouldSkipRender,
-    prevLength: prevProps.content.length,
-    nextLength: nextProps.content.length
-  })
-  return shouldSkipRender
+  return prevProps.content === nextProps.content
 })
 
 // Helper function to parse result and check for errors
@@ -570,13 +543,26 @@ export function ChatView(): JSX.Element {
                       <>
                         {/* Only use markdown renderer for assistant messages which likely contain markdown */}
                         {message.role === 'assistant' ? (
-                          <MarkdownMessage content={message.content} />
+                          <>
+                            {isStreaming && message.id === streamingMessageId ? (
+                              // During streaming, show plain text to avoid flickering
+                              <div className="whitespace-pre-wrap break-words">
+                                {message.content}
+                                <span className="inline-block ml-1 animate-pulse">▋</span>
+                              </div>
+                            ) : (
+                              // After streaming completes, render with markdown
+                              <MarkdownMessage content={message.content} />
+                            )}
+                          </>
                         ) : (
                           // User messages rendered as plain text with original styling
-                          <div className="whitespace-pre-wrap break-words">{message.content}</div>
-                        )}
-                        {isStreaming && message.id === streamingMessageId && (
-                          <span className="inline-block ml-1 animate-pulse">▋</span>
+                          <div className="whitespace-pre-wrap break-words">
+                            {message.content}
+                            {isStreaming && message.id === streamingMessageId && (
+                              <span className="inline-block ml-1 animate-pulse">▋</span>
+                            )}
+                          </div>
                         )}
                       </>
                     ) : isStreaming && message.id === streamingMessageId && !message.content ? (
