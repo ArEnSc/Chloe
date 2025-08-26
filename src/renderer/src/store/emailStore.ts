@@ -1,40 +1,13 @@
 import { create } from 'zustand'
 import { devtools, persist } from 'zustand/middleware'
 import { ipc } from '@renderer/lib/ipc'
-import { EMAIL_IPC_CHANNELS } from '@shared/types/email'
+import { EMAIL_IPC_CHANNELS, type Email } from '@shared/types/email'
 import { logInfo, logError } from '@shared/logger'
 import { ERROR_MESSAGES } from '@renderer/shared/constants'
-import type { Email as EmailType } from '@shared/types/email'
-export interface Email {
-  id: string
-  threadId: string
-  subject: string
-  from: {
-    name: string
-    email: string
-  }
-  to: {
-    name: string
-    email: string
-  }[]
-  cc?: {
-    name: string
-    email: string
-  }[]
-  date: Date
-  snippet: string
-  body: string
+
+// Extend the shared Email type with UI-specific properties
+export interface UIEmail extends Email {
   cleanBody?: string
-  isRead: boolean
-  isStarred: boolean
-  isImportant: boolean
-  labels: string[]
-  attachments?: {
-    id: string
-    filename: string
-    mimeType: string
-    size: number
-  }[]
   categorizedAttachments?: {
     images: Array<{ id: string; filename: string; mimeType: string; size: number }>
     pdfs: Array<{ id: string; filename: string; mimeType: string; size: number }>
@@ -52,7 +25,7 @@ export interface EmailFolder {
 }
 
 interface EmailState {
-  emails: Email[]
+  emails: UIEmail[]
   folders: EmailFolder[]
   selectedFolderId: string
   selectedEmailId: string | null
@@ -80,10 +53,10 @@ interface EmailState {
   emailListWidth: number
 
   // Actions
-  setEmails: (emails: Email[]) => void
+  setEmails: (emails: UIEmail[]) => void
   setLastSyncTime: (time: Date) => void
-  addEmail: (email: Email) => void
-  updateEmail: (id: string, updates: Partial<Email>) => void
+  addEmail: (email: UIEmail) => void
+  updateEmail: (id: string, updates: Partial<UIEmail>) => void
   deleteEmail: (id: string) => void
   moveToTrash: (id: string) => void
   clearAllEmails: () => void
@@ -114,10 +87,10 @@ interface EmailState {
   setPanelSizes: (folderListWidth: number, emailListWidth: number) => void
 
   // Computed
-  getFilteredEmails: () => Email[]
-  getPaginatedEmails: () => Email[]
+  getFilteredEmails: () => UIEmail[]
+  getPaginatedEmails: () => UIEmail[]
   updateTotalPages: () => void
-  getSelectedEmail: () => Email | null
+  getSelectedEmail: () => UIEmail | null
 
   // Sync actions
   initializeEmailSync: () => Promise<void>
@@ -368,13 +341,13 @@ export const useEmailStore = create<EmailState>()(
           try {
             // Fetch emails from local cache first
             if (ipc.isAvailable()) {
-              const emails = await ipc.invoke<EmailType[]>(EMAIL_IPC_CHANNELS.EMAIL_FETCH)
-              set({ emails: emails as Email[], isInitialLoad: false })
+              const emails = await ipc.invoke<Email[]>(EMAIL_IPC_CHANNELS.EMAIL_FETCH)
+              set({ emails: emails as UIEmail[], isInitialLoad: false })
               logInfo(`[EmailStore] Loaded ${emails.length} emails from local cache`)
 
               // Set up event listeners
-              const handleNewEmails = (_event: unknown, emails: EmailType[]): void => {
-                set({ emails: emails as Email[] })
+              const handleNewEmails = (_event: unknown, emails: Email[]): void => {
+                set({ emails: emails as UIEmail[] })
               }
 
               const handleSyncComplete = async (
@@ -384,8 +357,8 @@ export const useEmailStore = create<EmailState>()(
                 set({ lastSyncTime: new Date(data.timestamp) })
                 // Fetch updated emails from database after sync completes
                 try {
-                  const emails = await ipc.invoke<EmailType[]>(EMAIL_IPC_CHANNELS.EMAIL_FETCH)
-                  set({ emails: emails as Email[] })
+                  const emails = await ipc.invoke<Email[]>(EMAIL_IPC_CHANNELS.EMAIL_FETCH)
+                  set({ emails: emails as UIEmail[] })
                 } catch (error) {
                   logError(error as Error, 'EMAIL_FETCH_AFTER_SYNC_ERROR')
                 }
@@ -440,7 +413,7 @@ export const useEmailStore = create<EmailState>()(
             if (result.success && result.timestamp) {
               set({ lastSyncTime: new Date(result.timestamp) })
               // Fetch updated emails from database
-              const emails = await ipc.invoke<EmailType[]>(EMAIL_IPC_CHANNELS.EMAIL_FETCH)
+              const emails = await ipc.invoke<Email[]>(EMAIL_IPC_CHANNELS.EMAIL_FETCH)
               set({ emails: emails as Email[] })
             }
           } catch (error) {
