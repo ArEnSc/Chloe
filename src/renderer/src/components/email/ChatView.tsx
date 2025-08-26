@@ -20,10 +20,77 @@ import {
   Zap,
   AlertCircle,
   MessageSquare,
-  Clock
+  Clock,
+  Copy,
+  Check
 } from 'lucide-react'
 import { FlickeringGrid } from '@/components/ui/flickering-grid'
 import { AnimatedShinyText } from '@/components/magicui/animated-shiny-text'
+
+// Code block component with copy button
+function CodeBlock({
+  children,
+  className,
+  inline
+}: {
+  children: React.ReactNode
+  className?: string
+  inline?: boolean
+}): JSX.Element {
+  const [copied, setCopied] = useState(false)
+  const codeRef = useRef<HTMLElement>(null)
+
+  const handleCopy = async (): Promise<void> => {
+    if (codeRef.current) {
+      const code = codeRef.current.textContent || ''
+      try {
+        await navigator.clipboard.writeText(code)
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2000)
+      } catch (err) {
+        logError('Failed to copy code:', err)
+      }
+    }
+  }
+
+  if (inline) {
+    return (
+      <code className="bg-muted px-1 py-0.5 rounded text-xs" ref={codeRef}>
+        {children}
+      </code>
+    )
+  }
+
+  const match = /language-(\w+)/.exec(className || '')
+  const language = match ? match[1] : ''
+
+  return (
+    <div className="relative group">
+      <code
+        ref={codeRef}
+        className={`${className} block overflow-x-auto`}
+      >
+        {children}
+      </code>
+      <button
+        onClick={handleCopy}
+        className="absolute top-2 right-2 p-1.5 rounded bg-gray-700 hover:bg-gray-600 opacity-0 group-hover:opacity-100 transition-opacity"
+        title="Copy code"
+      >
+        {copied ? (
+          <Check className="h-4 w-4 text-green-400" />
+        ) : (
+          <Copy className="h-4 w-4 text-gray-300" />
+        )}
+      </button>
+      {language && (
+        <div className="absolute top-2 left-2 text-xs text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">
+          {language}
+        </div>
+      )}
+    </div>
+  )
+}
 
 // Helper function to parse result and check for errors
 function parseResult(result: unknown): { parsedResult: unknown; isError: boolean } {
@@ -296,19 +363,12 @@ export function ChatView(): JSX.Element {
                             remarkPlugins={[remarkGfm]}
                             rehypePlugins={[rehypeHighlight]}
                             components={{
-                              // Custom code block styling
-                              code: ({ inline, className, children, ...props }) => {
-                                const match = /language-(\w+)/.exec(className || '')
-                                return !inline && match ? (
-                                  <code className={`${className} block overflow-x-auto`} {...props}>
-                                    {children}
-                                  </code>
-                                ) : (
-                                  <code className="bg-muted px-1 py-0.5 rounded text-xs" {...props}>
-                                    {children}
-                                  </code>
-                                )
-                              },
+                              // Use our custom CodeBlock component
+                              code: ({ inline, className, children, ...props }) => (
+                                <CodeBlock inline={inline} className={className}>
+                                  {children}
+                                </CodeBlock>
+                              ),
                               // Custom pre styling to work with highlight.js
                               pre: ({ children, ...props }) => (
                                 <pre
