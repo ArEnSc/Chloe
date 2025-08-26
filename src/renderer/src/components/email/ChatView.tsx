@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, memo, useMemo, type JSX } from 'react'
 import { useEmailStore } from '@/store/emailStore'
 import { useLMStudioStore } from '@/store/lmStudioStore'
-import { useAutoScroll, useAutoResizeTextarea } from '@/hooks/layoutHooks'
+import { useSmartAutoScroll, useAutoResizeTextarea } from '@/hooks/layoutHooks'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -399,8 +399,8 @@ export function ChatView(): JSX.Element {
     systemPrompt
   ])
 
-  // Auto-scroll to bottom when messages change
-  useAutoScroll(scrollAreaRef, [messages])
+  // Smart auto-scroll - only scrolls when user is near bottom
+  const { isAtBottom, scrollToBottom } = useSmartAutoScroll(scrollAreaRef, [messages])
   // Auto-resize textarea based on content
   useAutoResizeTextarea(textareaRef, inputValue)
 
@@ -734,6 +734,21 @@ export function ChatView(): JSX.Element {
           ))}
         </div>
       </ScrollArea>
+      
+      {/* Scroll to bottom button - shows when not at bottom */}
+      {!isAtBottom && (
+        <div className="absolute bottom-24 left-1/2 transform -translate-x-1/2 z-20">
+          <Button
+            onClick={scrollToBottom}
+            size="sm"
+            variant="secondary"
+            className="rounded-full shadow-lg flex items-center gap-1 px-3 py-2"
+          >
+            <ChevronDown className="h-4 w-4" />
+            <span className="text-xs">New messages</span>
+          </Button>
+        </div>
+      )}
 
       <div className="relative z-10 border-t border-border p-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="flex items-center justify-between mb-2">
