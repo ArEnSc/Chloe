@@ -415,6 +415,10 @@ export const useEmailStore = create<EmailState>()(
               // Start polling
               await ipc.invoke(EMAIL_IPC_CHANNELS.EMAIL_START_POLLING)
               logInfo('[EmailStore] Started email polling')
+
+              // Trigger immediate sync on startup
+              logInfo('[EmailStore] Triggering initial sync with Gmail')
+              get().syncEmails()
             }
           } catch (error) {
             logError(error as Error, 'EMAIL_INIT_ERROR')
