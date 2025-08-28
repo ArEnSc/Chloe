@@ -23,7 +23,9 @@
       "Bash(git push:*)",
       "Bash(npm run build:*)",
       "Bash(git commit:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(git worktree add:*)",
+      "Bash(git checkout:*)"
     ],
     "deny": [],
     "ask": []

@@ -1,5 +1,5 @@
 import { BrowserWindow, ipcMain } from 'electron'
-import { google, gmail_v1 } from 'googleapis'
+import { google, gmail_v1, people_v1 } from 'googleapis'
 import { OAuth2Client } from 'google-auth-library'
 import { logInfo, logError } from '../../shared/logger'
 import { AUTH_IPC_CHANNELS } from '../../shared/types/auth'
@@ -94,7 +94,8 @@ export class GmailAuthService {
       access_type: 'offline',
       scope: [
         'https://www.googleapis.com/auth/gmail.readonly',
-        'https://www.googleapis.com/auth/gmail.send'
+        'https://www.googleapis.com/auth/gmail.send',
+        'https://www.googleapis.com/auth/contacts.readonly'
       ],
       prompt: 'consent'
     })
@@ -210,6 +211,15 @@ export class GmailAuthService {
       logError('Failed to refresh token:', error)
       throw new Error('Failed to refresh access token')
     }
+  }
+
+  async getPeopleClient(): Promise<people_v1.People> {
+    const isAuth = await this.isAuthenticated()
+    if (!isAuth) {
+      throw new Error('Not authenticated')
+    }
+
+    return google.people({ version: 'v1', auth: this.oauth2Client })
   }
 
   async logout(): Promise<void> {

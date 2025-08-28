@@ -44,9 +44,7 @@ export function useSmartAutoScroll(
   useEffect(() => {
     if (!scrollRef.current) return
 
-    const scrollContainer = selector
-      ? scrollRef.current.querySelector(selector)
-      : scrollRef.current
+    const scrollContainer = selector ? scrollRef.current.querySelector(selector) : scrollRef.current
 
     if (!scrollContainer) return
 
