@@ -5,6 +5,7 @@ import { EmailDetail } from './EmailDetail'
 import { AutomatedTasksList } from './AutomatedTasksList'
 import { ChatView } from './ChatView'
 import { WhitelistManager } from './WhitelistManager'
+import { AuthErrorModal } from './AuthErrorModal'
 import { SyncStatus } from '@/components/SyncStatus'
 import { useEmailStore } from '@/store/emailStore'
 import { useMultiPanelResize } from '@/hooks/usePanelResize'
@@ -87,6 +88,9 @@ export function EmailLayout(): React.JSX.Element {
 
       {/* Whitelist Manager Modal */}
       <WhitelistManager />
+      
+      {/* Auth Error Modal */}
+      <AuthErrorModal />
     </div>
   )
 }

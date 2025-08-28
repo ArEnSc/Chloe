@@ -556,7 +556,13 @@ export const useEmailStore = create<EmailState>()(
             logInfo(`[EmailStore] Whitelist updated. Total contacts: ${updatedContacts.length}`)
           } catch (error) {
             logError(error as Error, 'GMAIL_CONTACTS_FETCH_ERROR')
-            set({ error: 'Failed to fetch Gmail contacts', isLoadingContacts: false })
+            const errorMessage = error instanceof Error ? error.message : 'Failed to fetch Gmail contacts'
+            set({ error: errorMessage, isLoadingContacts: false })
+            
+            // Show error in a modal if it's a permission error
+            if (errorMessage.includes('re-authenticate')) {
+              window.dispatchEvent(new CustomEvent('showAuthError', { detail: errorMessage }))
+            }
           }
         }
       }),
