@@ -88,7 +88,7 @@ export function EmailLayout(): React.JSX.Element {
 
       {/* Whitelist Manager Modal */}
       <WhitelistManager />
-      
+
       {/* Auth Error Modal */}
       <AuthErrorModal />
     </div>

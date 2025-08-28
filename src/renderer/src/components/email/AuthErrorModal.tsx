@@ -42,17 +42,13 @@ export function AuthErrorModal(): React.JSX.Element | null {
             <AlertCircle className="h-5 w-5 text-destructive" />
             Authentication Required
           </DialogTitle>
-          <DialogDescription className="text-left pt-3">
-            {errorMessage}
-          </DialogDescription>
+          <DialogDescription className="text-left pt-3">{errorMessage}</DialogDescription>
         </DialogHeader>
         <DialogFooter className="flex gap-2">
           <Button variant="outline" onClick={() => setIsOpen(false)}>
             Cancel
           </Button>
-          <Button onClick={handleOpenSettings}>
-            Open Settings
-          </Button>
+          <Button onClick={handleOpenSettings}>Open Settings</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

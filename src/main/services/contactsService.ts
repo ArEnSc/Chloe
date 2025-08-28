@@ -38,7 +38,9 @@ export class ContactsService {
       } catch (error) {
         if ((error as any)?.message?.includes('insufficient authentication scopes')) {
           logError(error as Error, 'CONTACTS_PERMISSION_ERROR')
-          throw new Error('Please re-authenticate to grant contact permissions. Go to Settings and log out, then log back in.')
+          throw new Error(
+            'Please re-authenticate to grant contact permissions. Go to Settings and log out, then log back in.'
+          )
         }
         logError(error as Error, 'REGULAR_CONTACTS_FETCH_ERROR')
         // Don't throw for regular contacts, we can still try other contacts
@@ -60,7 +62,9 @@ export class ContactsService {
           logError(error as Error, 'CONTACTS_PERMISSION_ERROR')
           // If we already have some contacts, don't throw
           if (allContacts.size === 0) {
-            throw new Error('Please re-authenticate to grant contact permissions. Go to Settings and log out, then log back in.')
+            throw new Error(
+              'Please re-authenticate to grant contact permissions. Go to Settings and log out, then log back in.'
+            )
           }
         } else {
           logError(error as Error, 'OTHER_CONTACTS_FETCH_ERROR')
