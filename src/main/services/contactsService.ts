@@ -47,29 +47,39 @@ export class ContactsService {
 
           // Parse email addresses from To header
           const emailRegex = /([^<\s]+@[^>\s]+)/g
-          const nameEmailRegex = /"?([^"<]+)"?\s*<([^>]+)>/g
+          const nameEmailRegex = /"?([^"<,]+)"?\s*<([^>]+)>/g
 
-          let match
-          while ((match = nameEmailRegex.exec(toHeader)) !== null) {
-            const [, name, email] = match
-            if (!contacts.has(email)) {
-              contacts.set(email, { email, name: name.trim() })
-              logInfo(`[ContactsService] Found contact: ${name.trim()} <${email}>`)
+          // Split by comma first to handle multiple recipients
+          const recipients = toHeader.split(',').map(r => r.trim())
+          
+          for (const recipient of recipients) {
+            const match = nameEmailRegex.exec(recipient)
+            if (match) {
+              const [, name, email] = match
+              const cleanName = name.trim().replace(/^["']|["']$/g, '') // Remove quotes
+              if (!contacts.has(email)) {
+                contacts.set(email, { email, name: cleanName })
+                logInfo(`[ContactsService] Found contact: ${cleanName} <${email}>`)
+              }
             }
+            // Reset regex lastIndex for next iteration
+            nameEmailRegex.lastIndex = 0
           }
 
-          // Also try simple email regex
-          toHeader.split(',').forEach((part) => {
-            const emails = part.match(emailRegex)
-            if (emails) {
-              emails.forEach((email) => {
-                if (!contacts.has(email)) {
-                  contacts.set(email, { email })
-                  logInfo(`[ContactsService] Found contact (email only): ${email}`)
-                }
-              })
+          // Also try simple email regex for any remaining addresses
+          for (const recipient of recipients) {
+            if (!recipient.includes('<')) { // Only process if not already parsed above
+              const emails = recipient.match(emailRegex)
+              if (emails) {
+                emails.forEach((email) => {
+                  if (!contacts.has(email)) {
+                    contacts.set(email, { email })
+                    logInfo(`[ContactsService] Found contact (email only): ${email}`)
+                  }
+                })
+              }
             }
-          })
+          }
         } catch (error) {
           console.error('Error fetching message:', error)
         }
