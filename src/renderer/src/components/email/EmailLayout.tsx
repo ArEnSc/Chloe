@@ -4,6 +4,7 @@ import { EmailList } from './EmailList'
 import { EmailDetail } from './EmailDetail'
 import { AutomatedTasksList } from './AutomatedTasksList'
 import { ChatView } from './ChatView'
+import { WhitelistManager } from './WhitelistManager'
 import { SyncStatus } from '@/components/SyncStatus'
 import { useEmailStore } from '@/store/emailStore'
 import { useMultiPanelResize } from '@/hooks/usePanelResize'
@@ -83,6 +84,9 @@ export function EmailLayout(): React.JSX.Element {
           {selectedAutomatedTask ? <ChatView /> : <EmailDetail />}
         </div>
       </div>
+
+      {/* Whitelist Manager Modal */}
+      <WhitelistManager />
     </div>
   )
 }

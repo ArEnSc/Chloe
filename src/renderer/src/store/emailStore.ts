@@ -16,6 +16,14 @@ export interface UIEmail extends Email {
   }
 }
 
+export interface WhitelistContact {
+  id: string
+  email: string
+  name?: string
+  addedAt: Date
+  source: 'manual' | 'gmail'
+}
+
 export interface EmailFolder {
   id: string
   name: string
@@ -42,6 +50,11 @@ interface EmailState {
     phase: 'fetching' | 'processing' | 'saving'
     message: string
   } | null
+
+  // Whitelist properties
+  whitelistContacts: WhitelistContact[]
+  whitelistFilterEnabled: boolean
+  isLoadingContacts: boolean
 
   // Pagination
   currentPage: number
@@ -95,6 +108,14 @@ interface EmailState {
   // Sync actions
   initializeEmailSync: () => Promise<void>
   syncEmails: () => Promise<void>
+
+  // Whitelist actions
+  toggleWhitelistFilter: () => void
+  addWhitelistContact: (contact: Omit<WhitelistContact, 'id' | 'addedAt'>) => void
+  removeWhitelistContact: (email: string) => void
+  clearWhitelist: () => void
+  isWhitelisted: (email: string) => boolean
+  fetchGmailContacts: () => Promise<void>
 }
 
 const defaultFolders: EmailFolder[] = [
@@ -121,6 +142,11 @@ export const useEmailStore = create<EmailState>()(
         error: null,
         lastSyncTime: null,
         syncProgress: null,
+
+        // Whitelist state
+        whitelistContacts: [],
+        whitelistFilterEnabled: false,
+        isLoadingContacts: false,
 
         // Pagination state
         currentPage: 1,
@@ -269,6 +295,20 @@ export const useEmailStore = create<EmailState>()(
           const state = get()
           let filtered = state.emails
 
+          // Apply whitelist filter if enabled
+          if (state.whitelistFilterEnabled && state.whitelistContacts.length > 0) {
+            const beforeCount = filtered.length
+            const whitelistEmails = new Set(
+              state.whitelistContacts.map((c) => c.email.toLowerCase())
+            )
+            filtered = filtered.filter((email) =>
+              whitelistEmails.has(email.from.email.toLowerCase())
+            )
+            logInfo(
+              `[EmailStore] Whitelist filter applied: ${beforeCount} emails -> ${filtered.length} emails`
+            )
+          }
+
           // Filter by folder
           switch (state.selectedFolderId) {
             case 'inbox':
@@ -336,6 +376,11 @@ export const useEmailStore = create<EmailState>()(
             return
           }
 
+          // Ensure inbox is selected on first run
+          if (state.emails.length === 0) {
+            set({ selectedFolderId: 'inbox', selectedAutomatedTask: null })
+          }
+
           set({ isInitialized: true, error: null })
 
           try {
@@ -368,7 +413,7 @@ export const useEmailStore = create<EmailState>()(
                 _event: unknown,
                 progress: { current: number; total: number; phase: string; message: string } | null
               ): void => {
-                set({ syncProgress: progress })
+                set({ syncProgress: progress as EmailState['syncProgress'] })
               }
 
               // Set up listeners
@@ -421,6 +466,98 @@ export const useEmailStore = create<EmailState>()(
           } finally {
             set({ isLoading: false })
           }
+        },
+
+        toggleWhitelistFilter: () => {
+          set((state) => {
+            const newState = !state.whitelistFilterEnabled
+            logInfo(`[EmailStore] Whitelist filter toggled: ${newState ? 'ON' : 'OFF'}`)
+            if (newState && state.whitelistContacts.length === 0) {
+              logInfo('[EmailStore] Warning: Whitelist filter enabled but no contacts in whitelist')
+            }
+            return { whitelistFilterEnabled: newState }
+          })
+        },
+
+        addWhitelistContact: (contact) => {
+          try {
+            const newContact: WhitelistContact = {
+              ...contact,
+              id: crypto.randomUUID(),
+              addedAt: new Date()
+            }
+            set((state) => ({
+              whitelistContacts: [...state.whitelistContacts, newContact]
+            }))
+          } catch (error) {
+            logError(error as Error, 'ADD_WHITELIST_CONTACT_ERROR')
+          }
+        },
+
+        removeWhitelistContact: (email) => {
+          set((state) => ({
+            whitelistContacts: state.whitelistContacts.filter((c) => c.email !== email)
+          }))
+        },
+
+        clearWhitelist: () => {
+          set({ whitelistContacts: [], whitelistFilterEnabled: false })
+        },
+
+        isWhitelisted: (email) => {
+          const { whitelistContacts } = get()
+          return whitelistContacts.some((c) => c.email.toLowerCase() === email.toLowerCase())
+        },
+
+        fetchGmailContacts: async () => {
+          set({ isLoadingContacts: true, error: null })
+          try {
+            logInfo('[EmailStore] Fetching Gmail contacts...')
+
+            const gmailContacts = await ipc.invoke<Array<{ email: string; name?: string }>>(
+              EMAIL_IPC_CHANNELS.CONTACT_FETCH_GMAIL,
+              50
+            )
+
+            logInfo(`[EmailStore] Received ${gmailContacts.length} contacts from Gmail`)
+
+            const existingContacts = get().whitelistContacts
+            const existingEmails = new Set(existingContacts.map((c) => c.email.toLowerCase()))
+
+            logInfo(`[EmailStore] Existing whitelist has ${existingContacts.length} contacts`)
+
+            // Only add new contacts that don't already exist
+            const newContacts = gmailContacts
+              .filter((gc) => !existingEmails.has(gc.email.toLowerCase()))
+              .map((gc) => ({
+                id: crypto.randomUUID(),
+                email: gc.email,
+                name: gc.name,
+                addedAt: new Date(),
+                source: 'gmail' as const
+              }))
+
+            logInfo(`[EmailStore] Adding ${newContacts.length} new contacts to whitelist`)
+
+            // Log sample of new contacts
+            if (newContacts.length > 0) {
+              logInfo('[EmailStore] Sample of new contacts being added:')
+              newContacts.slice(0, 5).forEach((contact, index) => {
+                logInfo(`  ${index + 1}. ${contact.name || 'No name'} <${contact.email}>`)
+              })
+            }
+
+            const updatedContacts = [...existingContacts, ...newContacts]
+            set({
+              whitelistContacts: updatedContacts,
+              isLoadingContacts: false
+            })
+
+            logInfo(`[EmailStore] Whitelist updated. Total contacts: ${updatedContacts.length}`)
+          } catch (error) {
+            logError(error as Error, 'GMAIL_CONTACTS_FETCH_ERROR')
+            set({ error: 'Failed to fetch Gmail contacts', isLoadingContacts: false })
+          }
         }
       }),
       {
@@ -429,7 +566,9 @@ export const useEmailStore = create<EmailState>()(
           selectedFolderId: state.selectedFolderId,
           searchQuery: state.searchQuery,
           folderListWidth: state.folderListWidth,
-          emailListWidth: state.emailListWidth
+          emailListWidth: state.emailListWidth,
+          whitelistContacts: state.whitelistContacts,
+          whitelistFilterEnabled: state.whitelistFilterEnabled
         })
       }
     )

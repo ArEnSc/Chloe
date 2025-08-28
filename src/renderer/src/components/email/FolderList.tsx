@@ -5,7 +5,19 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
-import { Inbox, Star, Send, FileText, Trash2, Plus, Search, Settings } from 'lucide-react'
+import {
+  Inbox,
+  Star,
+  Send,
+  FileText,
+  Trash2,
+  Plus,
+  Search,
+  Settings,
+  Users,
+  Download,
+  Shield
+} from 'lucide-react'
 
 const folderIcons = {
   inbox: Inbox,
@@ -25,7 +37,12 @@ export function FolderList(): React.JSX.Element {
     searchQuery,
     setSearchQuery,
     selectAutomatedTask,
-    selectedAutomatedTask
+    selectedAutomatedTask,
+    whitelistContacts,
+    whitelistFilterEnabled,
+    toggleWhitelistFilter,
+    fetchGmailContacts,
+    isLoadingContacts
   } = useEmailStore()
   const { googleAuth } = useSettingsStore()
 
@@ -101,6 +118,58 @@ export function FolderList(): React.JSX.Element {
               <div className="mr-2 h-2 w-2 rounded-full bg-purple-500" />
               <span className="text-sm">Projects</span>
             </Button>
+          </div>
+        </div>
+
+        <Separator className="my-2" />
+
+        {/* Whitelist Section */}
+        <div className="py-2">
+          <div className="mb-2 flex items-center justify-between px-3">
+            <h3 className="text-xs font-semibold uppercase text-muted-foreground">Whitelist</h3>
+            {whitelistContacts.length > 0 && (
+              <span className="text-xs text-muted-foreground">{whitelistContacts.length}</span>
+            )}
+          </div>
+          <div className="space-y-1">
+            <Button
+              variant={whitelistFilterEnabled ? 'secondary' : 'ghost'}
+              className="w-full justify-start"
+              onClick={() => toggleWhitelistFilter()}
+            >
+              <Shield className={cn('mr-2 h-4 w-4', whitelistFilterEnabled && 'text-green-500')} />
+              <span className="flex-1 text-left text-sm">
+                {whitelistFilterEnabled ? 'Whitelist Active' : 'Enable Whitelist'}
+              </span>
+            </Button>
+            <Button
+              variant="ghost"
+              className="w-full justify-start"
+              onClick={() => fetchGmailContacts()}
+              disabled={isLoadingContacts}
+            >
+              {isLoadingContacts ? (
+                <>
+                  <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                  <span className="text-sm">Importing...</span>
+                </>
+              ) : (
+                <>
+                  <Download className="mr-2 h-4 w-4" />
+                  <span className="text-sm">Import from Gmail</span>
+                </>
+              )}
+            </Button>
+            {whitelistContacts.length > 0 && (
+              <Button
+                variant="ghost"
+                className="w-full justify-start"
+                onClick={() => window.dispatchEvent(new CustomEvent('openWhitelistManager'))}
+              >
+                <Users className="mr-2 h-4 w-4" />
+                <span className="text-sm">Manage Contacts</span>
+              </Button>
+            )}
           </div>
         </div>
 
