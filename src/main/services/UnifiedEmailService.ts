@@ -13,6 +13,7 @@ import {
 import { logInfo, logError } from '../../shared/logger'
 import { getCleanEmail } from '../utils/emailSanitizer'
 import { AccountService } from './AccountService'
+import { ContactsService } from './contactsService'
 
 // Result types for UnifiedEmailService operations
 export interface SendEmailResult {
@@ -124,12 +125,14 @@ export class UnifiedEmailService implements IUnifiedEmailService {
   private static instance: UnifiedEmailService | null = null
   private gmailAuthService: GmailAuthService
   private accountService: AccountService
+  private contactsService: ContactsService
   private pollingInterval: NodeJS.Timeout | null = null
   private lastSyncTime: Date | null = null
 
   private constructor(gmailAuthService: GmailAuthService) {
     this.gmailAuthService = gmailAuthService
     this.accountService = AccountService.getInstance()
+    this.contactsService = new ContactsService(gmailAuthService)
     this.setupIpcHandlers()
   }
 
@@ -827,6 +830,19 @@ export class UnifiedEmailService implements IUnifiedEmailService {
     // Send email
     ipcMain.handle('email:send', async (_, composition: EmailComposition) => {
       return this.sendEmail(composition)
+    })
+
+    // Fetch Gmail contacts
+    ipcMain.handle(EMAIL_IPC_CHANNELS.CONTACT_FETCH_GMAIL, async (_, limit?: number) => {
+      try {
+        logInfo('[IPC] Fetching Gmail contacts')
+        const contacts = await this.contactsService.fetchContacts(limit)
+        logInfo(`[IPC] Fetched ${contacts.length} Gmail contacts`)
+        return contacts
+      } catch (error) {
+        logError('[UnifiedEmailService] Contact fetch error:', error)
+        throw error
+      }
     })
 
     logInfo('[UnifiedEmailService] IPC handlers registered')
