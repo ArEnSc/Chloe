@@ -37,6 +37,7 @@ interface SettingsState {
   googleAuth: GoogleAuthConfig
   lmStudio: LMStudioConfig
   isSettingsOpen: boolean
+  onboardingCompleted: boolean
 
   // Actions
   setApiKey: (service: 'openai' | 'anthropic', key: string) => void
@@ -48,6 +49,7 @@ interface SettingsState {
   setLMStudioAutoConnecting: (isAutoConnecting: boolean) => void
   validateLMStudio: () => Promise<void>
   setSettingsOpen: (open: boolean) => void
+  setOnboardingCompleted: (completed: boolean) => void
   clearAllSettings: () => void
 }
 
@@ -152,6 +154,7 @@ export const useSettingsStore = create<SettingsState>()(
       googleAuth: defaultGoogleAuth,
       lmStudio: defaultLMStudio,
       isSettingsOpen: false,
+      onboardingCompleted: false,
 
       setApiKey: (service, key) =>
         set((state) => ({
@@ -317,12 +320,15 @@ export const useSettingsStore = create<SettingsState>()(
 
       setSettingsOpen: (open) => set({ isSettingsOpen: open }),
 
+      setOnboardingCompleted: (completed) => set({ onboardingCompleted: completed }),
+
       clearAllSettings: () =>
         set({
           openai: defaultApiKeyConfig,
           anthropic: defaultApiKeyConfig,
           googleAuth: defaultGoogleAuth,
-          lmStudio: defaultLMStudio
+          lmStudio: defaultLMStudio,
+          onboardingCompleted: false
         })
     }),
     {
@@ -337,7 +343,8 @@ export const useSettingsStore = create<SettingsState>()(
         lmStudio: {
           url: state.lmStudio.url,
           model: state.lmStudio.model
-        }
+        },
+        onboardingCompleted: state.onboardingCompleted
       })
     }
   )

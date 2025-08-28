@@ -19,7 +19,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Check, Loader2, AlertCircle, ExternalLink, LogOut, Trash2 } from 'lucide-react'
+import { Check, Loader2, AlertCircle, ExternalLink, LogOut, Trash2, RefreshCw } from 'lucide-react'
 
 interface ApiKeyFieldProps {
   label: string
@@ -121,7 +121,8 @@ export function Settings(): JSX.Element {
     setApiKey,
     validateApiKey,
     setGoogleAuth,
-    clearGoogleAuth
+    clearGoogleAuth,
+    setOnboardingCompleted
   } = useSettingsStore()
 
   const {
@@ -456,6 +457,31 @@ export function Settings(): JSX.Element {
                   >
                     <Trash2 className="mr-2 h-4 w-4" />
                     Clear All Local Emails
+                  </Button>
+                </div>
+                
+                {/* Reset Onboarding */}
+                <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 space-y-3 mt-3">
+                  <div className="flex items-start gap-3">
+                    <RefreshCw className="h-5 w-5 text-primary mt-0.5" />
+                    <div className="flex-1 space-y-1">
+                      <h4 className="text-sm font-semibold">Reset Onboarding</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Run the initial setup wizard again to reconfigure LM Studio and Gmail connections.
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setOnboardingCompleted(false)
+                      setSettingsOpen(false)
+                    }}
+                    className="w-full"
+                  >
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    Reset Onboarding
                   </Button>
                 </div>
               </div>

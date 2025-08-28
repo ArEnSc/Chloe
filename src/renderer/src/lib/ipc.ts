@@ -84,6 +84,25 @@ class IPCClient {
 
     window.electron.ipcRenderer.off(channel, callback)
   }
+
+  // Convenience methods for common operations
+
+  /**
+   * Test LM Studio connection
+   */
+  async testLMStudioConnection(): Promise<{ success: boolean; error?: string }> {
+    try {
+      // Get the URL from settings store - default to localhost:1234
+      const url = 'http://localhost:1234'
+      const result = await this.invoke<{ success: boolean; error?: string; data?: any }>('lmstudio:connect', url)
+      return result
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Connection failed'
+      }
+    }
+  }
 }
 
 // Export singleton instance
