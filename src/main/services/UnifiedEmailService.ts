@@ -128,6 +128,8 @@ export class UnifiedEmailService implements IUnifiedEmailService {
   private contactsService: ContactsService
   private pollingInterval: NodeJS.Timeout | null = null
   private lastSyncTime: Date | null = null
+  private newEmailCallbacks: ((emails: Email[]) => void)[] = []
+  private seenEmailIds: Set<string> = new Set()
 
   private constructor(gmailAuthService: GmailAuthService) {
     this.gmailAuthService = gmailAuthService
@@ -149,6 +151,23 @@ export class UnifiedEmailService implements IUnifiedEmailService {
 
   static getInstance(): UnifiedEmailService | null {
     return UnifiedEmailService.instance
+  }
+
+  /**
+   * Register a callback to be notified when new emails arrive
+   */
+  onNewEmails(callback: (emails: Email[]) => void): void {
+    this.newEmailCallbacks.push(callback)
+  }
+
+  /**
+   * Unregister a callback
+   */
+  offNewEmails(callback: (emails: Email[]) => void): void {
+    const index = this.newEmailCallbacks.indexOf(callback)
+    if (index > -1) {
+      this.newEmailCallbacks.splice(index, 1)
+    }
   }
 
   // ============================================
@@ -418,10 +437,14 @@ export class UnifiedEmailService implements IUnifiedEmailService {
 
     logInfo('[UnifiedEmailService] Starting email polling', { intervalMinutes })
 
-    // Initial fetch
+    // Initial fetch - mark all existing emails as seen
     this.fetchEmails(filter, true)
       .then((emails) => {
-        this.broadcastNewEmails(emails)
+        // On initial fetch, just mark emails as seen without broadcasting
+        emails.forEach((email) => this.seenEmailIds.add(email.id))
+        logInfo(
+          `[UnifiedEmailService] Initial fetch complete, tracking ${this.seenEmailIds.size} emails`
+        )
       })
       .catch((error) => {
         logError('[UnifiedEmailService] Error in initial fetch:', error)
@@ -432,7 +455,20 @@ export class UnifiedEmailService implements IUnifiedEmailService {
       async () => {
         try {
           const emails = await this.fetchEmails(filter, true)
-          this.broadcastNewEmails(emails)
+          const newEmails = emails.filter((email) => !this.seenEmailIds.has(email.id))
+
+          if (newEmails.length > 0) {
+            logInfo(`[UnifiedEmailService] Found ${newEmails.length} new emails`)
+            newEmails.forEach((email) => this.seenEmailIds.add(email.id))
+
+            // Prevent the set from growing indefinitely
+            if (this.seenEmailIds.size > 1000) {
+              const emailIds = Array.from(this.seenEmailIds)
+              this.seenEmailIds = new Set(emailIds.slice(-500))
+            }
+
+            this.broadcastNewEmails(newEmails)
+          }
         } catch (error) {
           logError('[UnifiedEmailService] Error in polling:', error)
         }
@@ -878,6 +914,15 @@ export class UnifiedEmailService implements IUnifiedEmailService {
 
     BrowserWindow.getAllWindows().forEach((window) => {
       window.webContents.send(EMAIL_IPC_CHANNELS.EMAIL_NEW_EMAILS, transformedEmails)
+    })
+
+    // Notify all registered callbacks
+    this.newEmailCallbacks.forEach((callback) => {
+      try {
+        callback(emails)
+      } catch (error) {
+        logError('[UnifiedEmailService] Error in new email callback:', error)
+      }
     })
   }
 
