@@ -222,6 +222,18 @@ export class GmailAuthService {
     return google.people({ version: 'v1', auth: this.oauth2Client })
   }
 
+  async hasContactsScope(): Promise<boolean> {
+    try {
+      const tokenInfo = await this.oauth2Client.getTokenInfo(
+        this.oauth2Client.credentials.access_token || ''
+      )
+      return tokenInfo.scopes?.includes('https://www.googleapis.com/auth/contacts.readonly') || false
+    } catch (error) {
+      logError('Error checking contacts scope:', error)
+      return false
+    }
+  }
+
   async logout(): Promise<void> {
     try {
       if (this.currentUserEmail) {

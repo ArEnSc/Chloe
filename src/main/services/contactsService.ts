@@ -22,6 +22,13 @@ export class ContactsService {
     try {
       logInfo(`[ContactsService] Starting to fetch contacts with limit: ${limit}`)
 
+      // Check if user has contacts permission
+      const hasPermission = await this.gmailAuthService.hasContactsScope()
+      if (!hasPermission) {
+        logError('User does not have contacts permission', 'CONTACTS_PERMISSION_MISSING')
+        throw new Error('Please re-authenticate to grant contact permissions. Go to Settings and log out, then log back in.')
+      }
+
       const people = await this.gmailAuthService.getPeopleClient()
       const allContacts = new Map<string, GmailContact>()
 
