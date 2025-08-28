@@ -224,10 +224,21 @@ export class GmailAuthService {
 
   async hasContactsScope(): Promise<boolean> {
     try {
-      const tokenInfo = await this.oauth2Client.getTokenInfo(
-        this.oauth2Client.credentials.access_token || ''
-      )
-      return tokenInfo.scopes?.includes('https://www.googleapis.com/auth/contacts.readonly') || false
+      const accessToken = this.oauth2Client.credentials.access_token
+      logInfo(`[AuthService] Checking contacts scope with token: ${accessToken ? 'present' : 'missing'}`)
+      
+      if (!accessToken) {
+        logError('No access token available for scope check')
+        return false
+      }
+      
+      const tokenInfo = await this.oauth2Client.getTokenInfo(accessToken)
+      logInfo(`[AuthService] Token scopes: ${JSON.stringify(tokenInfo.scopes)}`)
+      
+      const hasScope = tokenInfo.scopes?.includes('https://www.googleapis.com/auth/contacts.readonly') || false
+      logInfo(`[AuthService] Has contacts scope: ${hasScope}`)
+      
+      return hasScope
     } catch (error) {
       logError('Error checking contacts scope:', error)
       return false

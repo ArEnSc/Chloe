@@ -22,13 +22,6 @@ export class ContactsService {
     try {
       logInfo(`[ContactsService] Starting to fetch contacts with limit: ${limit}`)
 
-      // Check if user has contacts permission
-      const hasPermission = await this.gmailAuthService.hasContactsScope()
-      if (!hasPermission) {
-        logError('User does not have contacts permission', 'CONTACTS_PERMISSION_MISSING')
-        throw new Error('Please re-authenticate to grant contact permissions. Go to Settings and log out, then log back in.')
-      }
-
       const people = await this.gmailAuthService.getPeopleClient()
       const allContacts = new Map<string, GmailContact>()
 
@@ -48,10 +41,11 @@ export class ContactsService {
           throw new Error('Please re-authenticate to grant contact permissions. Go to Settings and log out, then log back in.')
         }
         logError(error as Error, 'REGULAR_CONTACTS_FETCH_ERROR')
-        throw error
+        // Don't throw for regular contacts, we can still try other contacts
       }
 
-      // Then, fetch "Other contacts" (auto-collected from emails)
+      // Then, fetch "Other contacts" (auto-collected from emails) if we have some regular contacts
+      // or if we didn't hit a permission error
       try {
         logInfo('[ContactsService] Fetching auto-collected contacts...')
         const otherContacts = await this.fetchOtherContacts(people, limit)
@@ -64,9 +58,13 @@ export class ContactsService {
       } catch (error) {
         if ((error as any)?.message?.includes('insufficient authentication scopes')) {
           logError(error as Error, 'CONTACTS_PERMISSION_ERROR')
-          throw new Error('Please re-authenticate to grant contact permissions. Go to Settings and log out, then log back in.')
+          // If we already have some contacts, don't throw
+          if (allContacts.size === 0) {
+            throw new Error('Please re-authenticate to grant contact permissions. Go to Settings and log out, then log back in.')
+          }
+        } else {
+          logError(error as Error, 'OTHER_CONTACTS_FETCH_ERROR')
         }
-        logError(error as Error, 'OTHER_CONTACTS_FETCH_ERROR')
         // Don't throw for other contacts errors, we can still use regular contacts
       }
 
