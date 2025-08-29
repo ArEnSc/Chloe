@@ -1,7 +1,9 @@
 import React, { useState, Fragment } from 'react'
-import { Check } from 'lucide-react'
+import { Check, X } from 'lucide-react'
 import { cn } from '../../lib/utils'
 import iconPath from '../../../../../resources/icon.png'
+import { SkipOnboardingModal } from './SkipOnboardingModal'
+import { Button } from '@/components/ui/button'
 
 interface Step {
   id: string
@@ -24,6 +26,7 @@ interface OnboardingLayoutProps {
 export function OnboardingLayout({ steps, onComplete }: OnboardingLayoutProps): React.JSX.Element {
   const [currentStep, setCurrentStep] = useState(0)
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set())
+  const [showSkipModal, setShowSkipModal] = useState(false)
 
   const handleStepComplete = (): void => {
     setCompletedSteps((prev) => new Set([...prev, currentStep]))
@@ -33,6 +36,15 @@ export function OnboardingLayout({ steps, onComplete }: OnboardingLayoutProps): 
     } else {
       onComplete()
     }
+  }
+
+  const handleSkip = (): void => {
+    setShowSkipModal(true)
+  }
+
+  const handleConfirmSkip = (): void => {
+    setShowSkipModal(false)
+    onComplete()
   }
 
   const handleStepClick = (index: number): void => {
@@ -113,6 +125,17 @@ export function OnboardingLayout({ steps, onComplete }: OnboardingLayoutProps): 
             {completedSteps.size} of {steps.length} steps completed
           </div>
         </div>
+
+        <div className="mt-4">
+          <Button
+            variant="ghost"
+            onClick={handleSkip}
+            className="w-full justify-start text-muted-foreground hover:text-foreground"
+          >
+            <X className="w-4 h-4 mr-2" />
+            Skip Setup
+          </Button>
+        </div>
       </div>
 
       {/* Main Content */}
@@ -186,6 +209,12 @@ export function OnboardingLayout({ steps, onComplete }: OnboardingLayoutProps): 
           />
         </div>
       </div>
+
+      <SkipOnboardingModal
+        open={showSkipModal}
+        onOpenChange={setShowSkipModal}
+        onConfirmSkip={handleConfirmSkip}
+      />
     </div>
   )
 }

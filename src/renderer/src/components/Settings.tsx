@@ -459,7 +459,7 @@ export function Settings(): JSX.Element {
                     Clear All Local Emails
                   </Button>
                 </div>
-                
+
                 {/* Reset Onboarding */}
                 <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 space-y-3 mt-3">
                   <div className="flex items-start gap-3">
@@ -467,7 +467,8 @@ export function Settings(): JSX.Element {
                     <div className="flex-1 space-y-1">
                       <h4 className="text-sm font-semibold">Reset Onboarding</h4>
                       <p className="text-sm text-muted-foreground">
-                        Run the initial setup wizard again to reconfigure LM Studio and Gmail connections.
+                        Run the initial setup wizard again to reconfigure LM Studio and Gmail
+                        connections.
                       </p>
                     </div>
                   </div>
