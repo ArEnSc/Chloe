@@ -176,9 +176,10 @@ export class WorkflowDebugger {
             email: {
               id: 'test-email-123',
               from: {
+                name: 'Sender',
                 email: (plan.trigger.config as Record<string, unknown>).fromAddress as string
               },
-              to: [{ email: 'test@example.com' }],
+              to: [{ name: 'Test User', email: 'test@example.com' }],
               subject: 'Test Email',
               body: 'This is a test email for workflow debugging',
               date: new Date(),
@@ -196,8 +197,8 @@ export class WorkflowDebugger {
             emailId: 'test-email-456',
             email: {
               id: 'test-email-456',
-              from: { email: 'sender@example.com' },
-              to: [{ email: 'test@example.com' }],
+              from: { name: 'Sender', email: 'sender@example.com' },
+              to: [{ name: 'Test User', email: 'test@example.com' }],
               subject: `Test: ${(plan.trigger.config as Record<string, unknown>).subject}`,
               body: 'This is a test email for workflow debugging',
               date: new Date(),

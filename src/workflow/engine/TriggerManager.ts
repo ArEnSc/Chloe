@@ -41,7 +41,7 @@ export class TriggerManager {
   async handleIncomingEmail(email: Email): Promise<void> {
     const triggeredWorkflows: WorkflowPlan[] = []
 
-    for (const workflow of this.enabledWorkflows.values()) {
+    for (const workflow of Array.from(this.enabledWorkflows.values())) {
       if (this.shouldTriggerForEmail(workflow, email)) {
         triggeredWorkflows.push(workflow)
       }
@@ -150,7 +150,7 @@ export class TriggerManager {
 
   shutdown(): void {
     // Clear all timers
-    for (const timer of this.timers.values()) {
+    for (const timer of Array.from(this.timers.values())) {
       clearInterval(timer)
     }
     this.timers.clear()

@@ -1,0 +1,153 @@
+[
+  {
+    "timestamp": "2025-08-28T18:19:01.644Z",
+    "level": "info",
+    "message": "🚀 Starting workflow execution",
+    "data": {
+      "workflowName": "Analyze and Forward Urgent",
+      "workflowId": "test-workflow-2",
+      "triggerType": "email_subject",
+      "triggerConfig": {
+        "subject": "support",
+        "matchType": "contains"
+      },
+      "triggerData": {
+        "emailId": "test-email-456",
+        "email": {
+          "id": "test-email-456",
+          "from": {
+            "email": "sender@example.com"
+          },
+          "to": [
+            {
+              "email": "test@example.com"
+            }
+          ],
+          "subject": "Test: support",
+          "body": "This is a test email for workflow debugging",
+          "date": "2025-08-28T18:19:01.644Z",
+          "labels": [
+            "inbox"
+          ],
+          "isRead": false,
+          "hasAttachment": false
+        }
+      },
+      "totalSteps": 3,
+      "enabled": true
+    },
+    "workflowId": "test-workflow-2",
+    "executionId": "exec-1756405141644"
+  },
+  {
+    "timestamp": "2025-08-28T18:19:01.644Z",
+    "level": "debug",
+    "message": "Evaluating step analyze-urgency",
+    "data": {
+      "stepId": "analyze-urgency",
+      "functionName": "analysis",
+      "hasCondition": false
+    },
+    "workflowId": "test-workflow-2",
+    "executionId": "exec-1756405141644",
+    "stepId": "analyze-urgency"
+  },
+  {
+    "timestamp": "2025-08-28T18:19:01.644Z",
+    "level": "info",
+    "message": "✅ Step analyze-urgency: success",
+    "data": {
+      "duration": "0ms",
+      "output": {
+        "success": true,
+        "result": "Analysis Results:\n- Key points extracted\n- Action items identified\n- Summary: Analyze this support email. Is it urgent? Look for keywords like: urgent, ASAP, critical, emergency, down, broken. Reply with 'URGENT' if it needs immediate attention, otherwise 'NORMAL'."
+      }
+    },
+    "workflowId": "test-workflow-2",
+    "executionId": "exec-1756405141644",
+    "stepId": "analyze-urgency"
+  },
+  {
+    "timestamp": "2025-08-28T18:19:01.644Z",
+    "level": "debug",
+    "message": "Evaluating step label-urgent",
+    "data": {
+      "stepId": "label-urgent",
+      "functionName": "addLabels",
+      "hasCondition": true,
+      "condition": {
+        "type": "previousStepOutput",
+        "field": "analyze-urgency.result",
+        "operator": "contains",
+        "value": "URGENT"
+      }
+    },
+    "workflowId": "test-workflow-2",
+    "executionId": "exec-1756405141644",
+    "stepId": "label-urgent"
+  },
+  {
+    "timestamp": "2025-08-28T18:19:01.644Z",
+    "level": "info",
+    "message": "✅ Step label-urgent: success",
+    "data": {
+      "duration": "0ms",
+      "output": {
+        "success": true
+      }
+    },
+    "workflowId": "test-workflow-2",
+    "executionId": "exec-1756405141644",
+    "stepId": "label-urgent"
+  },
+  {
+    "timestamp": "2025-08-28T18:19:01.644Z",
+    "level": "debug",
+    "message": "Evaluating step forward-to-team",
+    "data": {
+      "stepId": "forward-to-team",
+      "functionName": "sendEmail",
+      "hasCondition": true,
+      "condition": {
+        "type": "previousStepOutput",
+        "field": "label-urgent.success",
+        "operator": "equals",
+        "value": true
+      }
+    },
+    "workflowId": "test-workflow-2",
+    "executionId": "exec-1756405141644",
+    "stepId": "forward-to-team"
+  },
+  {
+    "timestamp": "2025-08-28T18:19:01.644Z",
+    "level": "info",
+    "message": "✅ Step forward-to-team: success",
+    "data": {
+      "duration": "0ms",
+      "output": {
+        "success": true,
+        "data": {
+          "messageId": "msg-1756405141644"
+        }
+      }
+    },
+    "workflowId": "test-workflow-2",
+    "executionId": "exec-1756405141644",
+    "stepId": "forward-to-team"
+  },
+  {
+    "timestamp": "2025-08-28T18:19:01.644Z",
+    "level": "info",
+    "message": "✅ Workflow completed successfully",
+    "data": {
+      "duration": "0ms",
+      "stepsExecuted": 3,
+      "successfulSteps": 3,
+      "failedSteps": 0,
+      "skippedSteps": 0
+    },
+    "workflowId": "test-workflow-2",
+    "executionId": "exec-1756405141644"
+  }
+]

@@ -1,0 +1,150 @@
+[
+  {
+    "timestamp": "2025-08-28T18:19:01.645Z",
+    "level": "info",
+    "message": "🚀 Starting workflow execution",
+    "data": {
+      "workflowName": "Cleanup Old Newsletters",
+      "workflowId": "test-workflow-3",
+      "triggerType": "email_subject",
+      "triggerConfig": {
+        "subject": "newsletter",
+        "matchType": "contains"
+      },
+      "triggerData": {
+        "emailId": "test-email-456",
+        "email": {
+          "id": "test-email-456",
+          "from": {
+            "email": "sender@example.com"
+          },
+          "to": [
+            {
+              "email": "test@example.com"
+            }
+          ],
+          "subject": "Test: newsletter",
+          "body": "This is a test email for workflow debugging",
+          "date": "2025-08-28T18:19:01.645Z",
+          "labels": [
+            "inbox"
+          ],
+          "isRead": false,
+          "hasAttachment": false
+        }
+      },
+      "totalSteps": 3,
+      "enabled": true
+    },
+    "workflowId": "test-workflow-3",
+    "executionId": "exec-1756405141645"
+  },
+  {
+    "timestamp": "2025-08-28T18:19:01.645Z",
+    "level": "debug",
+    "message": "Evaluating step check-if-newsletter",
+    "data": {
+      "stepId": "check-if-newsletter",
+      "functionName": "analysis",
+      "hasCondition": false
+    },
+    "workflowId": "test-workflow-3",
+    "executionId": "exec-1756405141645",
+    "stepId": "check-if-newsletter"
+  },
+  {
+    "timestamp": "2025-08-28T18:19:01.645Z",
+    "level": "info",
+    "message": "✅ Step check-if-newsletter: success",
+    "data": {
+      "duration": "0ms",
+      "output": {
+        "success": true,
+        "result": "Analysis Results:\n- Key points extracted\n- Action items identified\n- Summary: Is this email a newsletter or promotional email? Reply with 'YES' or 'NO'."
+      }
+    },
+    "workflowId": "test-workflow-3",
+    "executionId": "exec-1756405141645",
+    "stepId": "check-if-newsletter"
+  },
+  {
+    "timestamp": "2025-08-28T18:19:01.645Z",
+    "level": "debug",
+    "message": "Evaluating step add-newsletter-label",
+    "data": {
+      "stepId": "add-newsletter-label",
+      "functionName": "addLabels",
+      "hasCondition": true,
+      "condition": {
+        "type": "previousStepOutput",
+        "field": "check-if-newsletter.result",
+        "operator": "contains",
+        "value": "YES"
+      }
+    },
+    "workflowId": "test-workflow-3",
+    "executionId": "exec-1756405141645",
+    "stepId": "add-newsletter-label"
+  },
+  {
+    "timestamp": "2025-08-28T18:19:01.645Z",
+    "level": "info",
+    "message": "✅ Step add-newsletter-label: success",
+    "data": {
+      "duration": "0ms",
+      "output": {
+        "success": true
+      }
+    },
+    "workflowId": "test-workflow-3",
+    "executionId": "exec-1756405141645",
+    "stepId": "add-newsletter-label"
+  },
+  {
+    "timestamp": "2025-08-28T18:19:01.645Z",
+    "level": "debug",
+    "message": "Evaluating step remove-important-label",
+    "data": {
+      "stepId": "remove-important-label",
+      "functionName": "removeLabels",
+      "hasCondition": true,
+      "condition": {
+        "type": "previousStepOutput",
+        "field": "add-newsletter-label.success",
+        "operator": "equals",
+        "value": true
+      }
+    },
+    "workflowId": "test-workflow-3",
+    "executionId": "exec-1756405141645",
+    "stepId": "remove-important-label"
+  },
+  {
+    "timestamp": "2025-08-28T18:19:01.646Z",
+    "level": "info",
+    "message": "✅ Step remove-important-label: success",
+    "data": {
+      "duration": "1ms",
+      "output": {
+        "success": true
+      }
+    },
+    "workflowId": "test-workflow-3",
+    "executionId": "exec-1756405141645",
+    "stepId": "remove-important-label"
+  },
+  {
+    "timestamp": "2025-08-28T18:19:01.646Z",
+    "level": "info",
+    "message": "✅ Workflow completed successfully",
+    "data": {
+      "duration": "1ms",
+      "stepsExecuted": 3,
+      "successfulSteps": 3,
+      "failedSteps": 0,
+      "skippedSteps": 0
+    },
+    "workflowId": "test-workflow-3",
+    "executionId": "exec-1756405141645"
+  }
+]

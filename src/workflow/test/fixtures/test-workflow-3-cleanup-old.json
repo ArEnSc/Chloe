@@ -1,0 +1,60 @@
+{
+  "id": "test-workflow-3",
+  "name": "Cleanup Old Newsletters",
+  "description": "Remove labels from old newsletter emails",
+  "trigger": {
+    "id": "trigger-newsletter",
+    "type": "email_subject",
+    "config": {
+      "subject": "newsletter",
+      "matchType": "contains"
+    }
+  },
+  "steps": [
+    {
+      "id": "check-if-newsletter",
+      "functionName": "analysis",
+      "inputs": {
+        "prompt": "Is this email a newsletter or promotional email? Reply with 'YES' or 'NO'.",
+        "useTriggeredEmail": true
+      }
+    },
+    {
+      "id": "add-newsletter-label",
+      "functionName": "addLabels",
+      "inputs": {
+        "operation": {
+          "emailIdFromPreviousStep": true,
+          "labelIds": ["newsletter", "promotional"],
+          "operation": "add"
+        }
+      },
+      "condition": {
+        "type": "previousStepOutput",
+        "field": "check-if-newsletter.result",
+        "operator": "contains",
+        "value": "YES"
+      }
+    },
+    {
+      "id": "remove-important-label",
+      "functionName": "removeLabels",
+      "inputs": {
+        "operation": {
+          "emailIdFromPreviousStep": true,
+          "labelIds": ["important", "urgent"],
+          "operation": "remove"
+        }
+      },
+      "condition": {
+        "type": "previousStepOutput",
+        "field": "add-newsletter-label.success",
+        "operator": "equals",
+        "value": true
+      }
+    }
+  ],
+  "enabled": true,
+  "createdAt": "2024-01-20T10:00:00Z",
+  "updatedAt": "2024-01-20T10:00:00Z"
+}

@@ -997,15 +997,35 @@ export class UnifiedEmailService implements IUnifiedEmailService {
    */
   async addLabels(operation: LabelOperation): Promise<LabelOperationResult> {
     try {
-      const gmail = await this.gmailAuthService.getGmailClient()
+      // Update local database first
+      const db = await getDatabase()
+      if (db) {
+        db.write(() => {
+          const email = db.objectForPrimaryKey<EmailDocument>('Email', operation.emailId)
+          if (email) {
+            const currentLabels = new Set(email.labels)
+            operation.labelIds.forEach(label => currentLabels.add(label))
+            email.labels = Array.from(currentLabels)
+            logInfo(`[UnifiedEmailService] Added labels locally to email ${operation.emailId}`)
+          }
+        })
+      }
 
-      await gmail.users.messages.modify({
-        userId: 'me',
-        id: operation.emailId,
-        requestBody: {
-          addLabelIds: operation.labelIds
-        }
-      })
+      // Try to update Gmail if authenticated
+      try {
+        const gmail = await this.gmailAuthService.getGmailClient()
+        await gmail.users.messages.modify({
+          userId: 'me',
+          id: operation.emailId,
+          requestBody: {
+            addLabelIds: operation.labelIds
+          }
+        })
+        logInfo(`[UnifiedEmailService] Added labels in Gmail for email ${operation.emailId}`)
+      } catch (gmailError) {
+        // Log but don't fail - local update succeeded
+        logError('[UnifiedEmailService] Failed to update labels in Gmail:', gmailError)
+      }
 
       return { success: true }
     } catch (error) {
@@ -1021,15 +1041,35 @@ export class UnifiedEmailService implements IUnifiedEmailService {
    */
   async removeLabels(operation: LabelOperation): Promise<LabelOperationResult> {
     try {
-      const gmail = await this.gmailAuthService.getGmailClient()
+      // Update local database first
+      const db = await getDatabase()
+      if (db) {
+        db.write(() => {
+          const email = db.objectForPrimaryKey<EmailDocument>('Email', operation.emailId)
+          if (email) {
+            const currentLabels = new Set(email.labels)
+            operation.labelIds.forEach(label => currentLabels.delete(label))
+            email.labels = Array.from(currentLabels)
+            logInfo(`[UnifiedEmailService] Removed labels locally from email ${operation.emailId}`)
+          }
+        })
+      }
 
-      await gmail.users.messages.modify({
-        userId: 'me',
-        id: operation.emailId,
-        requestBody: {
-          removeLabelIds: operation.labelIds
-        }
-      })
+      // Try to update Gmail if authenticated
+      try {
+        const gmail = await this.gmailAuthService.getGmailClient()
+        await gmail.users.messages.modify({
+          userId: 'me',
+          id: operation.emailId,
+          requestBody: {
+            removeLabelIds: operation.labelIds
+          }
+        })
+        logInfo(`[UnifiedEmailService] Removed labels in Gmail for email ${operation.emailId}`)
+      } catch (gmailError) {
+        // Log but don't fail - local update succeeded
+        logError('[UnifiedEmailService] Failed to update labels in Gmail:', gmailError)
+      }
 
       return { success: true }
     } catch (error) {

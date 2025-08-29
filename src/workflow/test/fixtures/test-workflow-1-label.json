@@ -1,0 +1,28 @@
+{
+  "id": "test-workflow-1",
+  "name": "Auto-Label Important Emails",
+  "description": "Automatically label emails from specific senders as important",
+  "trigger": {
+    "id": "trigger-important",
+    "type": "email_from",
+    "config": {
+      "fromAddress": "boss@company.com"
+    }
+  },
+  "steps": [
+    {
+      "id": "add-important-label",
+      "functionName": "addLabels",
+      "inputs": {
+        "operation": {
+          "emailIdFromPreviousStep": true,
+          "labelIds": ["important", "from-boss"],
+          "operation": "add"
+        }
+      }
+    }
+  ],
+  "enabled": true,
+  "createdAt": "2024-01-20T10:00:00Z",
+  "updatedAt": "2024-01-20T10:00:00Z"
+}

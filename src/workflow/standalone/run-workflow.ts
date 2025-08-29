@@ -21,14 +21,14 @@ import * as path from 'path'
 /**
  * Standalone mock implementation of UnifiedEmailService for testing
  */
-class StandaloneMockMailService implements IUnifiedEmailService {
+export class StandaloneMockMailService implements IUnifiedEmailService {
   private logs: string[] = []
 
   async sendEmail(composition: EmailComposition): Promise<SendEmailResult> {
     this.log('sendEmail', composition)
     return {
       success: true,
-      data: { messageId: `msg-${Date.now()}` }
+      messageId: `msg-${Date.now()}`
     }
   }
 
@@ -36,7 +36,7 @@ class StandaloneMockMailService implements IUnifiedEmailService {
     this.log('scheduleEmail', scheduledEmail)
     return {
       success: true,
-      data: { scheduledId: `scheduled-${Date.now()}` }
+      scheduledId: `scheduled-${Date.now()}`
     }
   }
 
@@ -100,7 +100,7 @@ class StandaloneMockMailService implements IUnifiedEmailService {
     this.log('listenForEmails', { senders, options })
     return {
       success: true,
-      data: { listenerId: `listener-${Date.now()}` }
+      listenerId: `listener-${Date.now()}`
     }
   }
 

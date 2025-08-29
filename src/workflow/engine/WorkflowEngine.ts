@@ -46,6 +46,8 @@ interface ProcessedInputs {
   emailId?: string
   subject?: string
   labels?: string[]
+  labelIds?: string[]
+  operation?: 'add' | 'remove' | 'set'
   callback?: (email: Email) => void
   from?: string
   isRead?: boolean
@@ -261,7 +263,7 @@ export class WorkflowEngine {
       } catch (error) {
         attempts++
         if (attempts < maxAttempts && step.onError?.retryDelay) {
-          await new Promise((resolve) => setTimeout(resolve, step.onError.retryDelay))
+          await new Promise((resolve) => setTimeout(resolve, step.onError!.retryDelay))
           continue
         }
 
@@ -344,33 +346,55 @@ export class WorkflowEngine {
     if (!inputs) return {}
 
     // Use the new resolver to handle all references
-    const resolvedInputs = this.resolveValue(inputs, context)
+    const resolvedInputs = this.resolveValue(inputs, context) as Record<string, unknown>
 
     // Build processed inputs based on what was resolved
     const processed: ProcessedInputs = {}
 
     // Extract the relevant fields from resolved inputs
     if ('composition' in resolvedInputs) {
-      processed.composition = resolvedInputs.composition
+      processed.composition = resolvedInputs.composition as EmailComposition
     }
     if ('scheduledEmail' in resolvedInputs) {
-      processed.scheduledEmail = resolvedInputs.scheduledEmail
+      processed.scheduledEmail = resolvedInputs.scheduledEmail as ScheduledEmail
     }
     if ('senders' in resolvedInputs) {
-      processed.senders = resolvedInputs.senders
-      processed.subject = resolvedInputs.subject
-      processed.labels = resolvedInputs.labels
+      processed.senders = resolvedInputs.senders as string[]
+      processed.subject = resolvedInputs.subject as string | undefined
+      processed.labels = resolvedInputs.labels as string[] | undefined
     }
     if ('prompt' in resolvedInputs) {
-      processed.prompt = resolvedInputs.prompt
+      processed.prompt = resolvedInputs.prompt as string
       // Handle special case for triggered email
-      if (resolvedInputs.useTriggeredEmail && context.trigger?.email) {
+      const useTriggeredEmail = (resolvedInputs as any).useTriggeredEmail
+      if (useTriggeredEmail && context.trigger?.email) {
         processed.emails = [context.trigger.email]
       }
-      if (resolvedInputs.emailsFromPreviousStep) {
-        const [stepId] = resolvedInputs.emailsFromPreviousStep.split('.')
+      const emailsFromPreviousStep = (resolvedInputs as any).emailsFromPreviousStep
+      if (emailsFromPreviousStep) {
+        const [stepId] = emailsFromPreviousStep.split('.')
         const stepOutput = context.stepOutputs.get(stepId)
         processed.emails = stepOutput as Email[]
+      }
+    }
+
+    // Handle label operations
+    if ('operation' in resolvedInputs && typeof resolvedInputs.operation === 'object') {
+      const op = resolvedInputs.operation as Record<string, unknown>
+
+      // Handle emailIdFromPreviousStep
+      if (op.emailIdFromPreviousStep && context.trigger?.emailId) {
+        processed.emailId = context.trigger.emailId
+      } else if (op.emailId) {
+        processed.emailId = op.emailId as string
+      }
+
+      if (op.labelIds) {
+        processed.labelIds = op.labelIds as string[]
+      }
+
+      if (op.operation) {
+        processed.operation = op.operation as 'add' | 'remove' | 'set'
       }
     }
 
@@ -414,6 +438,22 @@ export class WorkflowEngine {
         return await this.emailService.analysis(inputs.prompt, {
           emails: inputs.emails,
           data: inputs.data
+        })
+      case 'addLabels':
+        if (!inputs.emailId) throw new Error('Missing emailId for addLabels')
+        if (!inputs.labelIds) throw new Error('Missing labelIds for addLabels')
+        return await this.emailService.addLabels({
+          emailId: inputs.emailId,
+          labelIds: inputs.labelIds,
+          operation: 'add'
+        })
+      case 'removeLabels':
+        if (!inputs.emailId) throw new Error('Missing emailId for removeLabels')
+        if (!inputs.labelIds) throw new Error('Missing labelIds for removeLabels')
+        return await this.emailService.removeLabels({
+          emailId: inputs.emailId,
+          labelIds: inputs.labelIds,
+          operation: 'remove'
         })
       default:
         throw new Error(`Unknown function: ${functionName}`)

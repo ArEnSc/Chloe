@@ -1,0 +1,82 @@
+[
+  {
+    "timestamp": "2025-08-28T18:19:01.642Z",
+    "level": "info",
+    "message": "🚀 Starting workflow execution",
+    "data": {
+      "workflowName": "Auto-Label Important Emails",
+      "workflowId": "test-workflow-1",
+      "triggerType": "email_from",
+      "triggerConfig": {
+        "fromAddress": "boss@company.com"
+      },
+      "triggerData": {
+        "emailId": "test-email-123",
+        "email": {
+          "id": "test-email-123",
+          "from": {
+            "email": "boss@company.com"
+          },
+          "to": [
+            {
+              "email": "test@example.com"
+            }
+          ],
+          "subject": "Test Email",
+          "body": "This is a test email for workflow debugging",
+          "date": "2025-08-28T18:19:01.641Z",
+          "labels": [
+            "inbox"
+          ],
+          "isRead": false,
+          "hasAttachment": false
+        }
+      },
+      "totalSteps": 1,
+      "enabled": true
+    },
+    "workflowId": "test-workflow-1",
+    "executionId": "exec-1756405141642"
+  },
+  {
+    "timestamp": "2025-08-28T18:19:01.642Z",
+    "level": "debug",
+    "message": "Evaluating step add-important-label",
+    "data": {
+      "stepId": "add-important-label",
+      "functionName": "addLabels",
+      "hasCondition": false
+    },
+    "workflowId": "test-workflow-1",
+    "executionId": "exec-1756405141642",
+    "stepId": "add-important-label"
+  },
+  {
+    "timestamp": "2025-08-28T18:19:01.643Z",
+    "level": "info",
+    "message": "✅ Step add-important-label: success",
+    "data": {
+      "duration": "1ms",
+      "output": {
+        "success": true
+      }
+    },
+    "workflowId": "test-workflow-1",
+    "executionId": "exec-1756405141642",
+    "stepId": "add-important-label"
+  },
+  {
+    "timestamp": "2025-08-28T18:19:01.643Z",
+    "level": "info",
+    "message": "✅ Workflow completed successfully",
+    "data": {
+      "duration": "1ms",
+      "stepsExecuted": 1,
+      "successfulSteps": 1,
+      "failedSteps": 0,
+      "skippedSteps": 0
+    },
+    "workflowId": "test-workflow-1",
+    "executionId": "exec-1756405141642"
+  }
+]

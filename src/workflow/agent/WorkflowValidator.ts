@@ -4,11 +4,11 @@ import {
   WorkflowFunction,
   SendEmailInputs,
   AnalysisInputs,
-  LabelInputs,
   ScheduleEmailInputs,
   ListenInputs
 } from '../types/workflow'
-import { EmailComposition, ScheduledEmail } from '../../types/mailActions'
+import { EmailComposition } from '../../shared/types/email'
+import { ScheduledEmail } from '../../main/services/UnifiedEmailService'
 
 interface ValidationResult {
   valid: boolean
@@ -69,6 +69,10 @@ export class WorkflowValidator {
     listenForEmails: () => ({
       success: true,
       data: { listenerId: 'string' }
+    }),
+    getEmails: () => ({
+      success: true,
+      data: [] // Array of emails
     })
   }
 
@@ -322,7 +326,7 @@ export class WorkflowValidator {
     availableOutputs: Map<string, StepOutput>
   ): ValidationError[] {
     const errors: ValidationError[] = []
-    const inputs = step.inputs as LabelInputs
+    const inputs = step.inputs as any
 
     if (!inputs.operation) {
       errors.push({

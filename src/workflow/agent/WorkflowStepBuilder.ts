@@ -1,4 +1,4 @@
-import { WorkflowStep } from '../types/workflow'
+import { WorkflowStep, SendEmailInputs } from '../types/workflow'
 
 /**
  * Helper class for AI agents to build workflow steps
@@ -33,16 +33,13 @@ export class WorkflowStepBuilder {
       id: `send-${++this.stepCounter}`,
       functionName: 'sendEmail',
       inputs: {
-        composition:
-          typeof body === 'string'
-            ? {
-                to: to.map((email) => ({ email })),
-                subject,
-                body,
-                isHtml: false
-              }
-            : body
-      }
+        composition: {
+          to: to,
+          subject,
+          body,
+          isHtml: false
+        }
+      } as SendEmailInputs
     }
 
     if (condition) {
@@ -74,7 +71,7 @@ export class WorkflowStepBuilder {
           labelIds: labels,
           operation: 'add'
         }
-      }
+      } as any
     }
 
     if (condition) {

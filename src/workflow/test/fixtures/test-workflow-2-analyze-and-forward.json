@@ -1,0 +1,61 @@
+{
+  "id": "test-workflow-2",
+  "name": "Analyze and Forward Urgent",
+  "description": "Analyze emails for urgency and forward to team if urgent",
+  "trigger": {
+    "id": "trigger-customer",
+    "type": "email_subject",
+    "config": {
+      "subject": "support",
+      "matchType": "contains"
+    }
+  },
+  "steps": [
+    {
+      "id": "analyze-urgency",
+      "functionName": "analysis",
+      "inputs": {
+        "prompt": "Analyze this support email. Is it urgent? Look for keywords like: urgent, ASAP, critical, emergency, down, broken. Reply with 'URGENT' if it needs immediate attention, otherwise 'NORMAL'.",
+        "useTriggeredEmail": true
+      }
+    },
+    {
+      "id": "label-urgent",
+      "functionName": "addLabels",
+      "inputs": {
+        "operation": {
+          "emailIdFromPreviousStep": true,
+          "labelIds": ["urgent", "needs-immediate-attention"],
+          "operation": "add"
+        }
+      },
+      "condition": {
+        "type": "previousStepOutput",
+        "field": "analyze-urgency.result",
+        "operator": "contains",
+        "value": "URGENT"
+      }
+    },
+    {
+      "id": "forward-to-team",
+      "functionName": "sendEmail",
+      "inputs": {
+        "composition": {
+          "to": ["support-team@company.com"],
+          "subject": "URGENT: Customer Support Request",
+          "body": "An urgent support request has been received. Please check your inbox for the labeled email.",
+          "isHtml": false
+        }
+      },
+      "condition": {
+        "type": "previousStepOutput",
+        "field": "label-urgent.success",
+        "operator": "equals",
+        "value": true
+      }
+    }
+  ],
+  "enabled": true,
+  "createdAt": "2024-01-20T10:00:00Z",
+  "updatedAt": "2024-01-20T10:00:00Z"
+}

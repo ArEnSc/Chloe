@@ -12,13 +12,28 @@ export class WorkflowLogger {
   private logs: LogEntry[] = []
   private maxLogs = 1000
   private logToConsole = true
+  private logLevel: LogEntry['level'] = 'info'
 
-  constructor(options?: { maxLogs?: number; logToConsole?: boolean }) {
+  constructor(options?: {
+    maxLogs?: number
+    logToConsole?: boolean
+    logLevel?: LogEntry['level']
+  }) {
     if (options?.maxLogs) this.maxLogs = options.maxLogs
     if (options?.logToConsole !== undefined) this.logToConsole = options.logToConsole
+    if (options?.logLevel) this.logLevel = options.logLevel
   }
 
   private log(entry: LogEntry): void {
+    // Check log level
+    const levels = ['debug', 'info', 'warn', 'error']
+    const entryLevel = levels.indexOf(entry.level)
+    const minLevel = levels.indexOf(this.logLevel)
+
+    if (entryLevel < minLevel) {
+      return // Skip logs below minimum level
+    }
+
     this.logs.push(entry)
 
     // Keep logs under limit
