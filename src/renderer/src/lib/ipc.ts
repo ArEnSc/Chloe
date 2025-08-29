@@ -94,7 +94,10 @@ class IPCClient {
     try {
       // Get the URL from settings store - default to localhost:1234
       const url = 'http://localhost:1234'
-      const result = await this.invoke<{ success: boolean; error?: string; data?: any }>('lmstudio:connect', url)
+      const result = await this.invoke<{ success: boolean; error?: string; data?: any }>(
+        'lmstudio:connect',
+        url
+      )
       return result
     } catch (error) {
       return {

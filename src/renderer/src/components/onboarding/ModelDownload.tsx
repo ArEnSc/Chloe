@@ -11,9 +11,9 @@ export function ModelDownload({ onComplete, isComplete }: StepComponentProps) {
 
   // Detect if running on macOS using userAgent instead of deprecated platform
   const isMacOS = /Mac|iPhone|iPod|iPad/i.test(navigator.userAgent)
-  const modelId = isMacOS 
-    ? 'gpt-oss-20b-mlx'  // MLX version for macOS
-    : 'lmstudio-ai/gpt-oss-035-octo-12b-v3-GGUF'  // GGUF version for Windows/Linux
+  const modelId = isMacOS
+    ? 'gpt-oss-20b-mlx' // MLX version for macOS
+    : 'lmstudio-ai/gpt-oss-035-octo-12b-v3-GGUF' // GGUF version for Windows/Linux
 
   const handleCopyModelId = () => {
     navigator.clipboard.writeText(modelId)
@@ -52,9 +52,7 @@ export function ModelDownload({ onComplete, isComplete }: StepComponentProps) {
                     • Model:{' '}
                     {isMacOS ? 'GPT-OSS 20B (MLX optimized for Apple Silicon)' : 'GPT-OSS 12B'}
                   </li>
-                  <li>
-                    • Size: {isMacOS ? '~20 GB download' : '~7-8 GB download'}
-                  </li>
+                  <li>• Size: {isMacOS ? '~20 GB download' : '~7-8 GB download'}</li>
                   <li>
                     • RAM Required:{' '}
                     {isMacOS ? '16GB minimum, 32GB recommended' : '8GB minimum, 16GB recommended'}
@@ -131,8 +129,8 @@ export function ModelDownload({ onComplete, isComplete }: StepComponentProps) {
                   <div>
                     <h4 className="font-medium">Model Successfully Installed!</h4>
                     <p className="text-sm text-muted-foreground mt-1">
-                      GPT-OSS is now ready. Next, we&apos;ll start the local server so Chloe can connect
-                      to it.
+                      GPT-OSS is now ready. Next, we&apos;ll start the local server so Chloe can
+                      connect to it.
                     </p>
                   </div>
                 </div>
