@@ -15,6 +15,7 @@ import icon from '../../resources/icon.png?asset'
 import * as dotenv from 'dotenv'
 import { GmailAuthService, setupAuthHandlers } from './auth/authService'
 import { UnifiedEmailService } from './services/UnifiedEmailService'
+import { WorkflowService } from '../workflow/WorkflowService'
 import { createDatabase, closeDatabase } from './db/database'
 import { logInfo, logError } from '../shared/logger'
 import { AUTH_IPC_CHANNELS } from '../shared/types/auth'
@@ -23,6 +24,8 @@ import { setupLMStudioSDKHandlers } from './ipc/lmStudioSDKHandlers'
 
 // Load environment variables
 dotenv.config()
+
+let workflowService: WorkflowService | null = null
 
 function createWindow(): void {
   logInfo('Creating main window')
@@ -108,65 +111,32 @@ app.whenReady().then(async () => {
   const gmailAuthService = new GmailAuthService()
   setupAuthHandlers(gmailAuthService)
 
-  // // Initialize workflow service
-  // const workflowStorageDir = join(app.getPath('userData'), 'workflows')
-  // const mailActionService = getMailActionService()
-  // const workflowService = new WorkflowService(mailActionService, workflowStorageDir)
-
-  // // Initialize workflow service
-  // await workflowService.initialize()
-  logInfo('WorkflowService initialized')
-
   // Initialize unified email service
-  UnifiedEmailService.initialize(gmailAuthService)
+  const unifiedEmailService = UnifiedEmailService.initialize(gmailAuthService)
   logInfo('Unified email service initialized')
 
-  // Connect email service to workflow triggers
-  // TODO: Implement proper email listener for workflow triggers
-  /*
-  UnifiedEmailService.getInstance()?.startPolling(5, undefined)
-  
-  // Old workflow trigger code - needs updating
-  emailService.listenForEmails(undefined, async (emails) => {
-    logInfo(`Processing ${emails.length} emails for workflow triggers`)
+  // Initialize workflow service
+  const workflowStorageDir = join(app.getPath('userData'), 'workflows')
+  workflowService = new WorkflowService(unifiedEmailService, workflowStorageDir)
+  await workflowService.initialize()
+  logInfo('WorkflowService initialized')
+
+  // Set up email monitoring for workflow triggers
+  unifiedEmailService.onNewEmails(async (emails) => {
+    logInfo(`[Main] Processing ${emails.length} new emails for workflow triggers`)
 
     for (const email of emails) {
-      // Convert Email to EmailMessage format for workflows
-      // Gmail provides "Name <email@example.com>" format, we need to parse it
-      const emailMessage = {
-        id: email.id,
-        from: {
-          email: extractEmailAddress(email.from),
-          name: extractName(email.from)
-        },
-        to: [
-          {
-            email: extractEmailAddress(email.to),
-            name: extractName(email.to)
-          }
-        ],
-        subject: email.subject,
-        body: sanitizeEmailBody(email.body), // Clean up HTML and formatting
-        date: email.date,
-        labels: email.labels,
-        isRead: email.isRead,
-        hasAttachment: email.attachments.length > 0,
-        threadId: email.threadId
-      }
-
-      logInfo(
-        `Checking workflow triggers for email: ${email.subject} from ${emailMessage.from.email}`
-      )
-
       try {
-        // TODO FIX later for triggers
-        //await workflowService.handleIncomingEmail(emailMessage)
+        await workflowService?.handleIncomingEmail(email)
       } catch (error) {
-        logError('Error handling workflow trigger:', error)
+        logError(`[Main] Error processing email for workflows: ${email.id}`, error)
       }
     }
   })
-  */
+
+  // Start email polling
+  unifiedEmailService.startPolling(5) // Poll every 5 minutes
+  logInfo('[Main] Email polling started')
 
   // Initialize LM Studio SDK handlers
   logInfo('Setting Up SDK Handlers LMStudio')
@@ -306,9 +276,24 @@ app.on('window-all-closed', () => {
   }
 })
 
-// Clean up database on app quit
+// Clean up on app quit
 app.on('before-quit', async () => {
-  logInfo('App is quitting - cleaning up database')
+  logInfo('App is quitting - cleaning up')
+
+  // Stop email polling
+  const emailService = UnifiedEmailService.getInstance()
+  if (emailService) {
+    emailService.stopPolling()
+    logInfo('Email polling stopped')
+  }
+
+  // Shutdown workflow service
+  if (workflowService) {
+    workflowService.shutdown()
+    logInfo('Workflow service shutdown')
+  }
+
+  // Close database
   await closeDatabase()
   logInfo('Database cleanup complete')
 })

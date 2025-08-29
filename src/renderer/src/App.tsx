@@ -1,11 +1,16 @@
 import React, { useEffect, useRef } from 'react'
 import { EmailLayout } from './components/email/EmailLayout'
 import { Settings } from './components/Settings'
+import { Onboarding } from './components/onboarding/Onboarding'
 import { useEmailStore } from './store/emailStore'
 import { useLMStudioStore } from './store/lmStudioStore'
+import { useSettingsStore } from './store/settingsStore'
 import { logError, logInfo } from '@shared/logger'
 
 function App(): React.JSX.Element {
+  // Check onboarding status
+  const { onboardingCompleted, setOnboardingCompleted } = useSettingsStore()
+  
   // Initialize email syncing
   const initializeEmailSync = useEmailStore((state) => state.initializeEmailSync)
 
@@ -30,8 +35,10 @@ function App(): React.JSX.Element {
 
     // Cleanup function to clear all timeouts
     return () => {
-      retryTimeouts.current.forEach((timeout) => clearTimeout(timeout))
-      retryTimeouts.current.clear()
+      // Copy ref value to avoid accessing stale ref in cleanup
+      const timeouts = retryTimeouts.current
+      timeouts.forEach((timeout) => clearTimeout(timeout))
+      timeouts.clear()
     }
   }, [isAutoConnecting, setAutoConnecting])
 
@@ -83,10 +90,17 @@ function App(): React.JSX.Element {
 
       return () => {
         clearTimeout(autoConnectDelay)
-        retryTimeouts.current.delete(autoConnectDelay)
+        // Copy ref value to avoid accessing stale ref in cleanup
+        const timeouts = retryTimeouts.current
+        timeouts.delete(autoConnectDelay)
       }
     }
   }, [url, isConnected, isValidating, isAutoConnecting, connect, setAutoConnecting])
+
+  // Show onboarding if not completed
+  if (!onboardingCompleted) {
+    return <Onboarding />
+  }
 
   return (
     <>
