@@ -10,7 +10,7 @@ import { logError, logInfo } from '@shared/logger'
 function App(): React.JSX.Element {
   // Check onboarding status
   const { onboardingCompleted, setOnboardingCompleted } = useSettingsStore()
-  
+
   // Initialize email syncing
   const initializeEmailSync = useEmailStore((state) => state.initializeEmailSync)
 

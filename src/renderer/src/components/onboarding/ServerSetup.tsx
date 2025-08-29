@@ -6,7 +6,7 @@ import { Play, CheckCircle, Server, AlertCircle } from 'lucide-react'
 
 export function ServerSetup({ onComplete, isComplete }: StepComponentProps) {
   const [serverStarted, setServerStarted] = useState(false)
-  
+
   // Detect if running on macOS using userAgent instead of deprecated platform
   const isMacOS = /Mac|iPhone|iPod|iPad/i.test(navigator.userAgent)
 
@@ -44,12 +44,12 @@ export function ServerSetup({ onComplete, isComplete }: StepComponentProps) {
               <h4 className="font-medium">Start the Server:</h4>
               <ol className="list-decimal list-inside space-y-2 text-sm">
                 <li>
-                  In LM Studio, click on the <strong>&quot;Local Server&quot;</strong> tab (icon looks like
-                  &lt;&gt;)
+                  In LM Studio, click on the <strong>&quot;Local Server&quot;</strong> tab (icon
+                  looks like &lt;&gt;)
                 </li>
                 <li>
-                  Select the <strong>{isMacOS ? 'gpt-oss-20b-mlx' : 'GPT-OSS'} model</strong> from the
-                  dropdown
+                  Select the <strong>{isMacOS ? 'gpt-oss-20b-mlx' : 'GPT-OSS'} model</strong> from
+                  the dropdown
                 </li>
                 <li>Keep the default settings (port 1234)</li>
                 <li>
@@ -63,8 +63,8 @@ export function ServerSetup({ onComplete, isComplete }: StepComponentProps) {
                   <AlertCircle className="w-5 h-5 text-blue-500 mt-0.5" />
                   <div>
                     <p className="text-sm">
-                      <strong>Tip:</strong> You can enable &quot;Auto-start server&quot; in LM Studio settings
-                      so the server starts automatically when you open LM Studio.
+                      <strong>Tip:</strong> You can enable &quot;Auto-start server&quot; in LM
+                      Studio settings so the server starts automatically when you open LM Studio.
                     </p>
                   </div>
                 </div>
@@ -84,8 +84,8 @@ export function ServerSetup({ onComplete, isComplete }: StepComponentProps) {
                 <div>
                   <h4 className="font-medium">Server Successfully Started!</h4>
                   <p className="text-sm text-muted-foreground mt-1">
-                    The local server is running. Let&apos;s test the connection to make sure everything
-                    is working.
+                    The local server is running. Let&apos;s test the connection to make sure
+                    everything is working.
                   </p>
                 </div>
               </div>

@@ -44,7 +44,7 @@ export function OnboardingLayout({ steps, onComplete }: OnboardingLayoutProps): 
 
   const handleConfirmSkip = (): void => {
     setShowSkipModal(false)
-    onComplete()
+    onComplete() // This will call setOnboardingCompleted(true) in Onboarding.tsx
   }
 
   const handleStepClick = (index: number): void => {
